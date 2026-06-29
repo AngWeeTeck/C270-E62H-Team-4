@@ -1,0 +1,137 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Forum Preview</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: Arial, sans-serif;
+      }
+
+      body {
+        margin: 0;
+        background: #f3f4f6;
+        color: #111827;
+      }
+
+      .page {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+
+      .hero {
+        background: linear-gradient(135deg, #2563eb, #7c3aed);
+        color: white;
+        padding: 24px;
+        border-radius: 16px;
+        margin-bottom: 24px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 24px;
+      }
+
+      .panel {
+        background: white;
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+      }
+
+      .forum-container, .rich-text-editor {
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 16px;
+        background: #fafafa;
+      }
+
+      .btn, .format-btn, .btn-view-thread {
+        border: none;
+        border-radius: 8px;
+        padding: 8px 12px;
+        cursor: pointer;
+        font-weight: 600;
+      }
+
+      .btn-primary, .format-btn {
+        background: #2563eb;
+        color: white;
+      }
+
+      .btn-secondary {
+        background: #e5e7eb;
+        color: #111827;
+      }
+
+      .thread-item, .reply-item {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 12px;
+        margin-bottom: 10px;
+      }
+
+      .thread-title, .reply-author {
+        margin: 0 0 6px;
+      }
+
+      .editor-textarea {
+        width: 100%;
+        min-height: 160px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        padding: 10px;
+        box-sizing: border-box;
+        margin-top: 10px;
+      }
+
+      .preview-container {
+        margin-top: 12px;
+        padding: 12px;
+        background: white;
+        border: 1px dashed #cbd5e1;
+        border-radius: 8px;
+      }
+
+      @media (max-width: 900px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="hero">
+        <h1>Forum and Rich Text Editor Preview</h1>
+        <p>This page renders the forum discussion view and the editor so you can inspect the UI.</p>
+      </div>
+
+      <div class="grid">
+        <section class="panel">
+          <h2>Forum Discussions</h2>
+          <div id="forum-root"></div>
+        </section>
+
+        <section class="panel">
+          <h2>Rich Text Editor</h2>
+          <div id="editor-root"></div>
+        </section>
+      </div>
+    </div>
+
+    <script src="./frontend/components/ForumDisplay.js"></script>
+    <script src="./frontend/components/RichTextEditor.js"></script>
+    <script>
+      document.addEventListener('DOMContentLoaded', () => {
+        new ForumDisplay('forum-root', { apiUrl: 'http://127.0.0.1:5000/api' });
+        new RichTextEditor('editor-root');
+      });
+    </script>
+  </body>
+</html>
