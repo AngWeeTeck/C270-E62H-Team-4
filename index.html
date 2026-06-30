@@ -1,0 +1,234 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Forum Preview</title>
+    <style>
+      :root {
+        color-scheme: light;
+        font-family: Arial, sans-serif;
+      }
+
+      body {
+        margin: 0;
+        background: #f3f4f6;
+        color: #111827;
+      }
+
+      .page {
+        max-width: 1200px;
+        margin: 0 auto;
+        padding: 24px;
+      }
+
+      .hero {
+        background: linear-gradient(135deg, #2563eb, #7c3aed);
+        color: white;
+        padding: 24px;
+        border-radius: 16px;
+        margin-bottom: 24px;
+      }
+
+      .grid {
+        display: grid;
+        grid-template-columns: 1.2fr 0.8fr;
+        gap: 24px;
+      }
+
+      .panel {
+        background: white;
+        border-radius: 16px;
+        padding: 20px;
+        box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
+      }
+
+      .forum-container, .rich-text-editor {
+        border: 1px solid #e5e7eb;
+        border-radius: 12px;
+        padding: 16px;
+        background: #fafafa;
+      }
+
+      .btn, .format-btn, .btn-view-thread {
+        border: none;
+        border-radius: 8px;
+        padding: 8px 12px;
+        cursor: pointer;
+        font-weight: 600;
+      }
+
+      .btn-primary, .format-btn {
+        background: #2563eb;
+        color: white;
+      }
+
+      .btn-secondary {
+        background: #e5e7eb;
+        color: #111827;
+      }
+
+      .thread-item, .reply-item {
+        background: white;
+        border: 1px solid #e5e7eb;
+        border-radius: 10px;
+        padding: 12px;
+        margin-bottom: 10px;
+      }
+
+      .thread-title, .reply-author {
+        margin: 0 0 6px;
+      }
+
+      .editor-textarea {
+        width: 100%;
+        min-height: 160px;
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        padding: 10px;
+        box-sizing: border-box;
+        margin-top: 10px;
+      }
+
+      .preview-container {
+        margin-top: 12px;
+        padding: 12px;
+        background: white;
+        border: 1px dashed #cbd5e1;
+        border-radius: 8px;
+      }
+
+      @media (max-width: 900px) {
+        .grid {
+          grid-template-columns: 1fr;
+        }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="page">
+      <div class="hero">
+        <h1>Forum and Rich Text Editor Preview</h1>
+        <p>This page renders the forum discussion view and the editor so you can inspect the UI.</p>
+      </div>
+
+      <div class="grid">
+        <section class="panel">
+          <h2>Forum Discussions</h2>
+          <div id="forum-root"></div>
+        </section>
+
+        <section class="panel">
+          <div id="notifications-root"></div>
+        </section>
+
+        <section class="panel">
+          <h2>Rich Text Editor</h2>
+          <div id="editor-root"></div>
+        </section>
+      </div>
+    </div>
+
+
+    <script src="./frontend/components/ForumDisplay.js"></script>
+    <script src="./frontend/components/RichTextEditor.js"></script>
+    
+    <script>
+  // This manages who is currently logged in
+  let currentUser = {
+    name: "Faris",
+    course: "Common ICT Programme",
+    avatar: "👤"
+  };
+
+  class NotificationSystem {
+    constructor(elementId) {
+      this.rootElement = document.getElementById(elementId);
+      // Start with the initial mock data we built earlier
+      this.notifications = [
+        { id: '1', message: 'Janelle replied to your thread!', type: 'Reply' },
+        { id: '2', message: 'Earned "First Post" Badge!', type: 'Badge' },
+        { id: '3', message: '+50 XP for daily login.', type: 'XP' }
+      ];
+      this.render();
+    }
+
+    // Function to let us switch profiles dynamically
+    switchUser(userName) {
+      if (userName === "WeeTeck") {
+        currentUser = { name: "Wee Teck", course: "IT Security Major", avatar: "💻" };
+      } else if (userName === "Janelle") {
+        currentUser = { name: "Janelle", course: "Data Analytics Major", avatar: "📊" };
+      } else {
+        currentUser = { name: "Faris", course: "Common ICT Programme", avatar: "👤" };
+      }
+      this.render(); // Redraw the UI with the new user details
+    }
+
+    // Function to inject a brand new notification when a post is submitted
+    triggerNewNotification(message, type = "Forum") {
+      const newNotif = {
+        id: Date.now().toString(),
+        message: message,
+        type: type
+      };
+      this.notifications.unshift(newNotif); // Put the newest notification at the top
+      this.render();
+    }
+
+    render() {
+      this.rootElement.innerHTML = `
+        <div style="padding: 10px; font-family: sans-serif;">
+          
+          <!-- USER SELECTOR CONTROL -->
+          <div style="margin-bottom: 15px; padding: 8px; background: #e0e7ff; border-radius: 6px;">
+            <label style="font-size: 12px; font-weight: bold; color: #4338ca;">🔄 SIMULATE LOGIN: </label>
+            <select id="user-switcher" style="padding: 4px; font-size: 12px; border-radius: 4px;" onchange="window.notifSystem.switchUser(this.value)">
+              <option value="Faris" ${currentUser.name === "Faris" ? "selected" : ""}>Faris (You)</option>
+              <option value="WeeTeck" ${currentUser.name === "Wee Teck" ? "selected" : ""}>Wee Teck</option>
+              <option value="Janelle" ${currentUser.name === "Janelle" ? "selected" : ""}>Janelle</option>
+            </select>
+          </div>
+
+          <!-- DYNAMIC PROFILE CARD -->
+          <div class="forum-container" style="margin-bottom: 20px; border-left: 4px solid #7c3aed; background: #fafafa; padding: 10px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <h3 style="margin-top: 0; color: #7c3aed;">${currentUser.avatar} Active Session</h3>
+            <p style="margin: 4px 0;"><strong>Name:</strong> ${currentUser.name}</p>
+            <p style="margin: 4px 0;"><strong>Course:</strong> ${currentUser.course}</p>
+          </div>
+
+          <!-- LIVE NOTIFICATIONS MODULE -->
+          <div class="forum-container" style="border-left: 4px solid #2563eb; background: #fafafa; padding: 10px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
+            <h3 style="margin-top: 0; color: #2563eb;">📡 Live Notifications Loop</h3>
+            
+            <!-- SIMULATED ACTION BUTTON -->
+            <button onclick="window.notifSystem.triggerNewNotification('New reply posted on your thread!', 'Reply')" style="width: 100%; margin-bottom: 10px; background: #2563eb; color: white; border: none; padding: 6px; border-radius: 4px; cursor: pointer; font-weight: bold;">
+              💥 Simulate a Teammate Replying
+            </button>
+
+            <ul style="list-style: none; padding: 0; margin: 0;">
+              ${this.notifications.map(notif => `
+                <li class="reply-item" style="border-left: 3px solid #2563eb; margin-bottom: 8px; padding: 8px; background: #fff; border-radius: 2px; box-shadow: 0 1px 2px rgba(0,0,0,0.05);">
+                  <strong>🔔 ${notif.type}:</strong> ${notif.message}
+                </li>
+              `).join('')}
+            </ul>
+          </div>
+
+        </div>
+      `;
+    }
+  }
+
+  document.addEventListener('DOMContentLoaded', () => {
+    // Keep your core team framework classes running safely
+    if (typeof ForumDisplay !== 'undefined') new ForumDisplay('forum-root', { apiUrl: 'http://127.0.0.1:5000/api' });
+    if (typeof RichTextEditor !== 'undefined') new RichTextEditor('editor-root');
+    
+    // Mount your notification system globally so the buttons can find it
+    window.notifSystem = new NotificationSystem('notifications-root');
+  });
+</script>
+    
+  </body>
+</html>

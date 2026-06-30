@@ -1,0 +1,296 @@
+{
+  "info": {
+    "name": "Forum API - Wee Teck User Stories",
+    "description": "API tests for Thread and Reply endpoints",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Threads",
+      "item": [
+        {
+          "name": "Create Thread",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Welcome to the Forum\",\n  \"content\": \"This is an example thread discussing forum features\",\n  \"author\": \"WeeTeck\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/threads",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "threads"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get All Threads",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/threads?page=1&limit=10",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "threads"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "10"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Thread by ID",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/threads/{{thread_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "threads",
+                "{{thread_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Thread",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"title\": \"Updated Thread Title\",\n  \"content\": \"Updated content here\"\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/threads/{{thread_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "threads",
+                "{{thread_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Thread",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/api/threads/{{thread_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "threads",
+                "{{thread_id}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Replies",
+      "item": [
+        {
+          "name": "Create Reply",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Great thread! I agree with this point.\",\n  \"author\": \"User123\",\n  \"richContent\": {\n    \"text\": \"Great thread! I agree with this point.\",\n    \"formatting\": {\n      \"bold\": [],\n      \"italic\": [],\n      \"codeBlocks\": []\n    },\n    \"embeds\": []\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/{{thread_id}}/replies",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "{{thread_id}}",
+                "replies"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Replies for Thread",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/{{thread_id}}/replies?page=1&limit=20",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "{{thread_id}}",
+                "replies"
+              ],
+              "query": [
+                {
+                  "key": "page",
+                  "value": "1"
+                },
+                {
+                  "key": "limit",
+                  "value": "20"
+                }
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Get Single Reply",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/reply/{{reply_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "reply",
+                "{{reply_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Update Reply",
+          "request": {
+            "method": "PUT",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"content\": \"Updated reply content\",\n  \"richContent\": {\n    \"text\": \"Updated reply content\",\n    \"formatting\": {\n      \"bold\": [],\n      \"italic\": [],\n      \"codeBlocks\": []\n    },\n    \"embeds\": []\n  }\n}"
+            },
+            "url": {
+              "raw": "{{base_url}}/api/reply/{{reply_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "reply",
+                "{{reply_id}}"
+              ]
+            }
+          },
+          "response": []
+        },
+        {
+          "name": "Delete Reply",
+          "request": {
+            "method": "DELETE",
+            "url": {
+              "raw": "{{base_url}}/api/reply/{{reply_id}}",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "reply",
+                "{{reply_id}}"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    },
+    {
+      "name": "Health & Status",
+      "item": [
+        {
+          "name": "Health Check",
+          "request": {
+            "method": "GET",
+            "url": {
+              "raw": "{{base_url}}/api/health",
+              "host": [
+                "{{base_url}}"
+              ],
+              "path": [
+                "api",
+                "health"
+              ]
+            }
+          },
+          "response": []
+        }
+      ]
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:5000",
+      "type": "string"
+    },
+    {
+      "key": "thread_id",
+      "value": "12345-67890",
+      "type": "string"
+    },
+    {
+      "key": "reply_id",
+      "value": "abcde-fghij",
+      "type": "string"
+    }
+  ]
+}
