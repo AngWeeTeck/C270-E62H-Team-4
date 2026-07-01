@@ -18,6 +18,7 @@ app.use(cors());
 app.use('/api/threads', require('./routes/threads'));
 app.use('/api', require('./routes/replies'));
 app.use('/api/notifications', notificationRoutes);
+app.use('/api/users', require('./routes/users'));
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });

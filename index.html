@@ -123,18 +123,22 @@
         </section>
 
         <section class="panel">
+          <h2>Social & Community</h2>
+          <div id="social-root"></div>
+        </section>
+
+        <section class="panel">
           <h2>Rich Text Editor</h2>
           <div id="editor-root"></div>
         </section>
       </div>
     </div>
 
-
     <script src="./frontend/components/ForumDisplay.js"></script>
     <script src="./frontend/components/RichTextEditor.js"></script>
+    <script src="./frontend/components/SocialFeatures.js"></script>
     
     <script>
-  // This manages who is currently logged in
   let currentUser = {
     name: "Faris",
     course: "Common ICT Programme",
@@ -144,7 +148,6 @@
   class NotificationSystem {
     constructor(elementId) {
       this.rootElement = document.getElementById(elementId);
-      // Start with the initial mock data we built earlier
       this.notifications = [
         { id: '1', message: 'Janelle replied to your thread!', type: 'Reply' },
         { id: '2', message: 'Earned "First Post" Badge!', type: 'Badge' },
@@ -153,7 +156,6 @@
       this.render();
     }
 
-    // Function to let us switch profiles dynamically
     switchUser(userName) {
       if (userName === "WeeTeck") {
         currentUser = { name: "Wee Teck", course: "IT Security Major", avatar: "💻" };
@@ -162,17 +164,19 @@
       } else {
         currentUser = { name: "Faris", course: "Common ICT Programme", avatar: "👤" };
       }
-      this.render(); // Redraw the UI with the new user details
+      this.render();
+      
+      // Forces the follow engine map to refresh layout instantly on switch
+      if (window.socialSystem) window.socialSystem.render();
     }
 
-    // Function to inject a brand new notification when a post is submitted
     triggerNewNotification(message, type = "Forum") {
       const newNotif = {
         id: Date.now().toString(),
         message: message,
         type: type
       };
-      this.notifications.unshift(newNotif); // Put the newest notification at the top
+      this.notifications.unshift(newNotif);
       this.render();
     }
 
@@ -180,7 +184,6 @@
       this.rootElement.innerHTML = `
         <div style="padding: 10px; font-family: sans-serif;">
           
-          <!-- USER SELECTOR CONTROL -->
           <div style="margin-bottom: 15px; padding: 8px; background: #e0e7ff; border-radius: 6px;">
             <label style="font-size: 12px; font-weight: bold; color: #4338ca;">🔄 SIMULATE LOGIN: </label>
             <select id="user-switcher" style="padding: 4px; font-size: 12px; border-radius: 4px;" onchange="window.notifSystem.switchUser(this.value)">
@@ -190,18 +193,15 @@
             </select>
           </div>
 
-          <!-- DYNAMIC PROFILE CARD -->
           <div class="forum-container" style="margin-bottom: 20px; border-left: 4px solid #7c3aed; background: #fafafa; padding: 10px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
             <h3 style="margin-top: 0; color: #7c3aed;">${currentUser.avatar} Active Session</h3>
             <p style="margin: 4px 0;"><strong>Name:</strong> ${currentUser.name}</p>
             <p style="margin: 4px 0;"><strong>Course:</strong> ${currentUser.course}</p>
           </div>
 
-          <!-- LIVE NOTIFICATIONS MODULE -->
           <div class="forum-container" style="border-left: 4px solid #2563eb; background: #fafafa; padding: 10px; border-radius: 4px; box-shadow: 0 1px 3px rgba(0,0,0,0.1);">
             <h3 style="margin-top: 0; color: #2563eb;">📡 Live Notifications Loop</h3>
             
-            <!-- SIMULATED ACTION BUTTON -->
             <button onclick="window.notifSystem.triggerNewNotification('New reply posted on your thread!', 'Reply')" style="width: 100%; margin-bottom: 10px; background: #2563eb; color: white; border: none; padding: 6px; border-radius: 4px; cursor: pointer; font-weight: bold;">
               💥 Simulate a Teammate Replying
             </button>
@@ -221,12 +221,11 @@
   }
 
   document.addEventListener('DOMContentLoaded', () => {
-    // Keep your core team framework classes running safely
     if (typeof ForumDisplay !== 'undefined') new ForumDisplay('forum-root', { apiUrl: 'http://127.0.0.1:5000/api' });
     if (typeof RichTextEditor !== 'undefined') new RichTextEditor('editor-root');
     
-    // Mount your notification system globally so the buttons can find it
     window.notifSystem = new NotificationSystem('notifications-root');
+    window.socialSystem = new SocialFeatures('social-root');
   });
 </script>
     
