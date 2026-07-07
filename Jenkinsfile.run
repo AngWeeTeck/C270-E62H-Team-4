@@ -1,0 +1,75 @@
+pipeline {
+    agent any
+
+    parameters {
+        choice(name: 'ENVIRONMENT', choices: ['development', 'staging', 'production'], description: 'Environment to run against')
+        booleanParam(name: 'BUILD_DOCKER', defaultValue: true, description: 'Build Docker image before running')
+    }
+
+    environment {
+        PATH = "/usr/local/bin:/usr/bin:/bin:${env.PATH}"
+        NODE_ENV = "${params.ENVIRONMENT}"
+    }
+
+    options {
+        timeout(time: 20, unit: 'MINUTES')
+        timestamps()
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Setup') {
+            steps {
+                sh '''
+                    node --version
+                    npm --version
+                '''
+            }
+        }
+
+        stage('Start Application') {
+            steps {
+                dir('backend') {
+                    sh '''
+                        PORT=5001 node server.js > app.log 2>&1 &
+                        APP_PID=$!
+                        echo "Started app with PID $APP_PID"
+                        for i in $(seq 1 20); do
+                            if curl -sf http://127.0.0.1:5001/api/health >/dev/null 2>&1; then
+                                echo "✅ Application is running"
+                                exit 0
+                            fi
+                            sleep 1
+                        done
+                        echo "❌ Application failed to start"
+                        cat app.log
+                        exit 1
+                    '''
+                }
+            }
+        }
+
+        stage('Build Docker Image') {
+            when {
+                expression { params.BUILD_DOCKER == true }
+            }
+            steps {
+                sh 'docker build -t forum-backend:latest .'
+            }
+        }
+    }
+
+    post {
+        always {
+            echo '▶️ Run pipeline finished.'
+        }
+        failure {
+            echo '❌ Run pipeline failed.'
+        }
+    }
+}
