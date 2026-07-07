@@ -23,7 +23,6 @@ pipeline {
     }
 
     triggers {
-        pollSCM('H/15 * * * *') // Poll every 15 minutes
         githubPush()
     }
 
@@ -96,6 +95,47 @@ pipeline {
                         sh '''
                             # Check for common issues
                             echo "✅ Frontend code quality check passed"
+                        '''
+                    }
+                }
+            }
+        }
+
+        stage('Build Application') {
+            steps {
+                script {
+                    echo '🏗️ Building application artifacts...'
+                    dir('backend') {
+                        sh 'npm install --production=false'
+                    }
+                    echo '✅ Build step completed'
+                }
+            }
+        }
+
+        stage('Run Application') {
+            steps {
+                script {
+                    echo '▶️ Starting backend application for smoke test...'
+                    dir('backend') {
+                        sh '''
+                            PORT=5001 node server.js > app.log 2>&1 &
+                            APP_PID=$!
+                            echo "Started app with PID $APP_PID"
+
+                            for i in $(seq 1 20); do
+                                if curl -sf http://127.0.0.1:5001/api/health >/dev/null 2>&1; then
+                                    echo "✅ Application is running"
+                                    kill $APP_PID
+                                    wait $APP_PID || true
+                                    exit 0
+                                fi
+                                sleep 1
+                            done
+
+                            echo "❌ Application failed to start"
+                            cat app.log
+                            exit 1
                         '''
                     }
                 }
@@ -217,7 +257,11 @@ pipeline {
 
         stage('Push Docker Image') {
             when {
-                expression { params.BUILD_DOCKER == true && params.ENVIRONMENT == 'production' }
+                allOf {
+                    branch 'main'
+                    expression { params.BUILD_DOCKER == true }
+                    expression { params.ENVIRONMENT == 'production' }
+                }
             }
             steps {
                 script {
@@ -239,7 +283,11 @@ pipeline {
 
         stage('Deploy to Development') {
             when {
-                expression { params.DEPLOY == true && params.ENVIRONMENT == 'development' }
+                allOf {
+                    branch 'main'
+                    expression { params.DEPLOY == true }
+                    expression { params.ENVIRONMENT == 'development' }
+                }
             }
             steps {
                 script {
@@ -266,7 +314,11 @@ pipeline {
 
         stage('Deploy to Staging') {
             when {
-                expression { params.DEPLOY == true && params.ENVIRONMENT == 'staging' }
+                allOf {
+                    branch 'main'
+                    expression { params.DEPLOY == true }
+                    expression { params.ENVIRONMENT == 'staging' }
+                }
             }
             steps {
                 script {
@@ -290,7 +342,11 @@ pipeline {
 
         stage('Deploy to Production') {
             when {
-                expression { params.DEPLOY == true && params.ENVIRONMENT == 'production' }
+                allOf {
+                    branch 'main'
+                    expression { params.DEPLOY == true }
+                    expression { params.ENVIRONMENT == 'production' }
+                }
             }
             steps {
                 script {
@@ -317,7 +373,10 @@ pipeline {
 
         stage('Smoke Tests') {
             when {
-                expression { params.DEPLOY == true }
+                allOf {
+                    branch 'main'
+                    expression { params.DEPLOY == true }
+                }
             }
             steps {
                 script {
