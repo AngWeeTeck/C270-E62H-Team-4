@@ -14,7 +14,7 @@ pipeline {
         DOCKER_IMAGE_TAG = "${BUILD_NUMBER}"
         NODE_ENV = "${params.ENVIRONMENT}"
         NODEJS_VERSION = '18'
-        PATH = "/usr/local/bin:${env.PATH}"
+        PATH = "/usr/local/bin:/usr/bin:/bin:${env.PATH}"
     }
 
     options {
@@ -46,8 +46,15 @@ pipeline {
             steps {
                 script {
                     echo '⚙️ Setting up environment...'
-                    sh 'node --version'
-                    sh 'npm --version'
+                    sh '''
+                        echo "PATH=$PATH"
+                        node --version
+                        npm --version
+                        which docker || true
+                        docker --version || true
+                        which docker-compose || true
+                        docker-compose --version || true
+                    '''
                 }
             }
         }
