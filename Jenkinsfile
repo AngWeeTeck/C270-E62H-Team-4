@@ -151,8 +151,9 @@ pipeline {
                     echo '🧪 Running backend unit tests...'
                     dir('backend') {
                         sh '''
-                            npm test -- --coverage --testPathPattern=tests/ 2>&1 | tee test-results.txt
-                            
+                            # Produce JUnit XML via jest-junit
+                            JEST_JUNIT_OUTPUT=./junit.xml npm run test:ci 2>&1 | tee test-results.txt || true
+
                             # Extract test summary
                             echo ""
                             echo "Test Summary:"
@@ -163,12 +164,7 @@ pipeline {
             }
             post {
                 always {
-                    junit testResults: 'backend/test-results.xml', allowEmptyResults: true
-                    publishHTML([
-                        reportDir: 'backend/coverage',
-                        reportFiles: 'index.html',
-                        reportName: 'Backend Coverage Report'
-                    ])
+                    junit testResults: 'backend/junit.xml', allowEmptyResults: true
                 }
                 unstable {
                     echo '⚠️ Backend tests failed or coverage below threshold'
@@ -185,8 +181,9 @@ pipeline {
                     echo '🧪 Running frontend unit tests...'
                     dir('frontend') {
                         sh '''
-                            npm test -- --coverage --testPathPattern=tests/ 2>&1 | tee test-results.txt
-                            
+                            # Produce JUnit XML via jest-junit
+                            JEST_JUNIT_OUTPUT=./junit.xml npm run test:ci 2>&1 | tee test-results.txt || true
+
                             # Extract test summary
                             echo ""
                             echo "Test Summary:"
@@ -197,12 +194,7 @@ pipeline {
             }
             post {
                 always {
-                    junit testResults: 'frontend/test-results.xml', allowEmptyResults: true
-                    publishHTML([
-                        reportDir: 'frontend/coverage',
-                        reportFiles: 'index.html',
-                        reportName: 'Frontend Coverage Report'
-                    ])
+                    junit testResults: 'frontend/junit.xml', allowEmptyResults: true
                 }
                 unstable {
                     echo '⚠️ Frontend tests failed or coverage below threshold'
