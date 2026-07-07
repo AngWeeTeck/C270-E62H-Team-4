@@ -14,6 +14,7 @@ pipeline {
         DOCKER_IMAGE_TAG = "${BUILD_NUMBER}"
         NODE_ENV = "${params.ENVIRONMENT}"
         NODEJS_VERSION = '18'
+        PATH = "/usr/local/bin:${env.PATH}"
     }
 
     options {
