@@ -54,7 +54,7 @@ This will:
 3. SCM: Git
 4. Repository URL: `https://github.com/AngWeeTeck/C270-E62H-Team-4`
 5. Credentials: Add GitHub credentials
-6. Branches: `*/feature/wee-teck-user-stories` or `*/main`
+6. Branches: `*/WeeTeck02` or `*/main`
 7. Script Path: `Jenkinsfile`
 
 ### Step 3: Configure Build Triggers

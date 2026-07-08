@@ -43,6 +43,12 @@ pipeline {
         }
 
         stage('Setup') {
+            agent {
+                docker {
+                    image 'node:18'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock -v /usr/local/bin/docker:/usr/local/bin/docker'
+                }
+            }
             steps {
                 script {
                     echo '⚙️ Setting up environment...'
@@ -60,6 +66,12 @@ pipeline {
         }
 
         stage('Backend: Install Dependencies') {
+            agent {
+                docker {
+                    image 'node:18'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock -v /usr/local/bin/docker:/usr/local/bin/docker'
+                }
+            }
             steps {
                 script {
                     echo '📦 Installing backend dependencies...'
@@ -71,6 +83,12 @@ pipeline {
         }
 
         stage('Frontend: Install Dependencies') {
+            agent {
+                docker {
+                    image 'node:18'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock -v /usr/local/bin/docker:/usr/local/bin/docker'
+                }
+            }
             steps {
                 script {
                     echo '📦 Installing frontend dependencies...'
@@ -82,6 +100,12 @@ pipeline {
         }
 
         stage('Backend: Lint & Analysis') {
+            agent {
+                docker {
+                    image 'node:18'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock -v /usr/local/bin/docker:/usr/local/bin/docker'
+                }
+            }
             steps {
                 script {
                     echo '🔍 Running backend linting...'
@@ -96,6 +120,12 @@ pipeline {
         }
 
         stage('Frontend: Lint & Analysis') {
+            agent {
+                docker {
+                    image 'node:18'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock -v /usr/local/bin/docker:/usr/local/bin/docker'
+                }
+            }
             steps {
                 script {
                     echo '🔍 Running frontend linting...'
@@ -110,6 +140,12 @@ pipeline {
         }
 
         stage('Build Application') {
+            agent {
+                docker {
+                    image 'node:18'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock -v /usr/local/bin/docker:/usr/local/bin/docker'
+                }
+            }
             steps {
                 script {
                     echo '🏗️ Building application artifacts...'
@@ -122,6 +158,12 @@ pipeline {
         }
 
         stage('Run Application') {
+            agent {
+                docker {
+                    image 'node:18'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock -v /usr/local/bin/docker:/usr/local/bin/docker'
+                }
+            }
             steps {
                 script {
                     echo '▶️ Starting backend application for smoke test...'
@@ -154,6 +196,12 @@ pipeline {
             when {
                 expression { params.RUN_TESTS == true }
             }
+            agent {
+                docker {
+                    image 'node:18'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock -v /usr/local/bin/docker:/usr/local/bin/docker'
+                }
+            }
             steps {
                 script {
                     echo '🧪 Running backend unit tests...'
@@ -184,6 +232,12 @@ pipeline {
             when {
                 expression { params.RUN_TESTS == true }
             }
+            agent {
+                docker {
+                    image 'node:18'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock -v /usr/local/bin/docker:/usr/local/bin/docker'
+                }
+            }
             steps {
                 script {
                     echo '🧪 Running frontend unit tests...'
@@ -211,6 +265,12 @@ pipeline {
         }
 
         stage('Security Scan') {
+            agent {
+                docker {
+                    image 'node:18'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock -v /usr/local/bin/docker:/usr/local/bin/docker'
+                }
+            }
             steps {
                 script {
                     echo '🔒 Running security checks...'
@@ -233,6 +293,12 @@ pipeline {
         stage('Build Docker Image') {
             when {
                 expression { params.BUILD_DOCKER == true }
+            }
+            agent {
+                docker {
+                    image 'node:18'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock -v /usr/local/bin/docker:/usr/local/bin/docker'
+                }
             }
             steps {
                 script {
@@ -263,6 +329,12 @@ pipeline {
                     expression { params.ENVIRONMENT == 'production' }
                 }
             }
+            agent {
+                docker {
+                    image 'node:18'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock -v /usr/local/bin/docker:/usr/local/bin/docker'
+                }
+            }
             steps {
                 script {
                     echo '📤 Pushing Docker image to registry...'
@@ -287,6 +359,12 @@ pipeline {
                     branch 'main'
                     expression { params.DEPLOY == true }
                     expression { params.ENVIRONMENT == 'development' }
+                }
+            }
+            agent {
+                docker {
+                    image 'node:18'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock -v /usr/local/bin/docker:/usr/local/bin/docker'
                 }
             }
             steps {
@@ -320,6 +398,12 @@ pipeline {
                     expression { params.ENVIRONMENT == 'staging' }
                 }
             }
+            agent {
+                docker {
+                    image 'node:18'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock -v /usr/local/bin/docker:/usr/local/bin/docker'
+                }
+            }
             steps {
                 script {
                     echo '🚀 Deploying to staging environment...'
@@ -346,6 +430,12 @@ pipeline {
                     branch 'main'
                     expression { params.DEPLOY == true }
                     expression { params.ENVIRONMENT == 'production' }
+                }
+            }
+            agent {
+                docker {
+                    image 'node:18'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock -v /usr/local/bin/docker:/usr/local/bin/docker'
                 }
             }
             steps {
@@ -378,6 +468,12 @@ pipeline {
                     expression { params.DEPLOY == true }
                 }
             }
+            agent {
+                docker {
+                    image 'node:18'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock -v /usr/local/bin/docker:/usr/local/bin/docker'
+                }
+            }
             steps {
                 script {
                     echo '✔️ Running smoke tests...'
@@ -405,6 +501,12 @@ pipeline {
         }
 
         stage('Generate Reports') {
+            agent {
+                docker {
+                    image 'node:18'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock -v /usr/local/bin/docker:/usr/local/bin/docker'
+                }
+            }
             steps {
                 script {
                     echo '📊 Generating reports...'

@@ -9,7 +9,7 @@ job {
                 url 'https://github.com/AngWeeTeck/C270-E62H-Team-4.git'
                 credentials 'github-credentials'
             }
-            branches '*/feature/wee-teck-user-stories'
+            branches '*/WeeTeck02'
             wipeOutWorkspace true
         }
     }

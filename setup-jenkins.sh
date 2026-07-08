@@ -27,17 +27,31 @@ if ! docker ps >/dev/null 2>&1; then
 fi
 
 echo -e "${BLUE}1️⃣  Starting Jenkins Container...${NC}"
-docker run -d \
-  --name jenkins-forum \
-  -p 8080:8080 \
-  -p 50000:50000 \
-  -v jenkins_home:/var/jenkins_home \
-  -v /var/run/docker.sock:/var/run/docker.sock \
-  -v /usr/local/bin/docker:/usr/local/bin/docker \
-  --env JENKINS_OPTS="--httpPort=8080" \
-  jenkins/jenkins:lts-jdk17
 
-echo -e "${GREEN}✅ Jenkins started on http://localhost:8080${NC}"
+# Reuse existing container/volume if present to preserve plugins/config
+NEW_CONTAINER_CREATED=false
+if docker ps --filter "name=jenkins-forum" --format '{{.Names}}' | grep -q jenkins-forum; then
+        echo -e "${GREEN}✅ Jenkins container 'jenkins-forum' is already running.${NC}"
+else
+        if docker ps -a --filter "name=jenkins-forum" --format '{{.Names}}' | grep -q jenkins-forum; then
+                echo -e "${BLUE}Starting existing Jenkins container 'jenkins-forum'...${NC}"
+                docker start jenkins-forum
+                echo -e "${GREEN}✅ Jenkins started from existing container.${NC}"
+        else
+                echo -e "${BLUE}Creating and starting new Jenkins container 'jenkins-forum'...${NC}"
+                docker run -d \
+                    --name jenkins-forum \
+                    -p 8080:8080 \
+                    -p 50000:50000 \
+                    -v jenkins_home:/var/jenkins_home \
+                    -v /var/run/docker.sock:/var/run/docker.sock \
+                    -v /usr/local/bin/docker:/usr/local/bin/docker \
+                    --env JENKINS_OPTS="--httpPort=8080" \
+                    jenkins/jenkins:lts-jdk17
+                NEW_CONTAINER_CREATED=true
+                echo -e "${GREEN}✅ Jenkins started on http://localhost:8080${NC}"
+        fi
+fi
 echo ""
 
 echo -e "${BLUE}2️⃣  Waiting for Jenkins to be ready...${NC}"
@@ -48,25 +62,30 @@ JENKINS_PASSWORD=$(docker exec jenkins-forum cat /var/jenkins_home/secrets/initi
 echo -e "${GREEN}Initial Admin Password: ${JENKINS_PASSWORD}${NC}"
 echo ""
 
-echo -e "${BLUE}4️⃣  Installing Jenkins Plugins...${NC}"
-docker exec jenkins-forum bash -c '
-    jenkins-plugin-cli \
-        --plugins \
-        pipeline-model-definition \
-        pipeline-stage-view \
-        git \
-        github-api \
-        github-branch-source \
-        docker-plugin \
-        docker-workflow \
-        email-ext \
-        publish-over-ssh \
-        nodejs \
-        timestamper \
-        junit \
-        jira \
-        htmlpublisher
-' || echo -e "${YELLOW}⚠️  Some plugins may need manual installation${NC}"
+
+if [ "$NEW_CONTAINER_CREATED" = true ]; then
+    echo -e "${BLUE}4️⃣  Installing Jenkins Plugins...${NC}"
+    docker exec jenkins-forum bash -c '
+        jenkins-plugin-cli \
+            --plugins \
+            pipeline-model-definition \
+            pipeline-stage-view \
+            git \
+            github-api \
+            github-branch-source \
+            docker-plugin \
+            docker-workflow \
+            email-ext \
+            publish-over-ssh \
+            nodejs \
+            timestamper \
+            junit \
+            jira \
+            htmlpublisher
+    ' || echo -e "${YELLOW}⚠️  Some plugins may need manual installation${NC}"
+else
+    echo -e "${GREEN}ℹ️  Skipping plugin installation — reusing existing Jenkins home (plugins persisted).${NC}"
+fi
 
 echo -e "${GREEN}✅ Jenkins setup completed!${NC}"
 echo ""
