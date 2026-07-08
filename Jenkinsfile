@@ -46,7 +46,7 @@ pipeline {
             agent {
                 docker {
                     image 'node:18'
-                    args '-v /var/run/docker.sock:/var/run/docker.sock -v /usr/local/bin/docker:/usr/local/bin/docker'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock -v /usr/bin/docker:/usr/bin/docker'
                 }
             }
             steps {
@@ -69,7 +69,7 @@ pipeline {
             agent {
                 docker {
                     image 'node:18'
-                    args '-v /var/run/docker.sock:/var/run/docker.sock -v /usr/local/bin/docker:/usr/local/bin/docker'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock -v /usr/bin/docker:/usr/bin/docker'
                 }
             }
             steps {
@@ -86,7 +86,7 @@ pipeline {
             agent {
                 docker {
                     image 'node:18'
-                    args '-v /var/run/docker.sock:/var/run/docker.sock -v /usr/local/bin/docker:/usr/local/bin/docker'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock -v /usr/bin/docker:/usr/bin/docker'
                 }
             }
             steps {
@@ -103,7 +103,7 @@ pipeline {
             agent {
                 docker {
                     image 'node:18'
-                    args '-v /var/run/docker.sock:/var/run/docker.sock -v /usr/local/bin/docker:/usr/local/bin/docker'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock -v /usr/bin/docker:/usr/bin/docker'
                 }
             }
             steps {
@@ -123,7 +123,7 @@ pipeline {
             agent {
                 docker {
                     image 'node:18'
-                    args '-v /var/run/docker.sock:/var/run/docker.sock -v /usr/local/bin/docker:/usr/local/bin/docker'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock -v /usr/bin/docker:/usr/bin/docker'
                 }
             }
             steps {
@@ -143,7 +143,7 @@ pipeline {
             agent {
                 docker {
                     image 'node:18'
-                    args '-v /var/run/docker.sock:/var/run/docker.sock -v /usr/local/bin/docker:/usr/local/bin/docker'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock -v /usr/bin/docker:/usr/bin/docker'
                 }
             }
             steps {
@@ -161,7 +161,7 @@ pipeline {
             agent {
                 docker {
                     image 'node:18'
-                    args '-v /var/run/docker.sock:/var/run/docker.sock -v /usr/local/bin/docker:/usr/local/bin/docker'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock -v /usr/bin/docker:/usr/bin/docker'
                 }
             }
             steps {
@@ -199,7 +199,7 @@ pipeline {
             agent {
                 docker {
                     image 'node:18'
-                    args '-v /var/run/docker.sock:/var/run/docker.sock -v /usr/local/bin/docker:/usr/local/bin/docker'
+                    args '-v /var/run/docker.sock:/var/run/docker.sock -v /usr/bin/docker:/usr/bin/docker'
                 }
             }
             steps {
@@ -294,15 +294,9 @@ pipeline {
             when {
                 expression { params.BUILD_DOCKER == true }
             }
-            agent {
-                docker {
-                    image 'node:18'
-                    args '-v /var/run/docker.sock:/var/run/docker.sock -v /usr/local/bin/docker:/usr/local/bin/docker'
-                }
-            }
             steps {
                 script {
-                    echo '🐳 Building Docker image...'
+                    echo '🐳 Building Docker image (running on Jenkins master where Docker socket is available)...'
                     sh '''
                         # sanitize branch name for Docker tag: lowercase, replace slashes and invalid chars
                         BRANCH_TAG=$(echo "${GIT_BRANCH}" | sed -E 's#refs/heads/##; s#/#-#g; s/[^a-zA-Z0-9_.-]/-/g' | tr '[:upper:]' '[:lower:]')
