@@ -1,0 +1,55 @@
+import React, { useState, useEffect } from 'react';
+
+const SocialFeatures = () => {
+  const [users, setUsers] = useState([]);
+  const currentUserId = "3"; // Simulating you logged in as Faris!
+
+  useEffect(() => {
+    fetch('http://localhost:5000/api/users')
+      .then(res => res.json())
+      .then(data => setUsers(data))
+      .catch(err => console.error("Error fetching users:", err));
+  }, []);
+
+  const handleFollow = (targetId) => {
+    fetch(`http://localhost:5000/api/users/${targetId}/follow`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ currentUserId })
+    })
+    .then(res => res.json())
+    .then(data => {
+      alert(data.message);
+      // Refresh user list to see updated follower counts
+      return fetch('http://localhost:5000/api/users');
+    })
+    .then(res => res.json())
+    .then(data => setUsers(data))
+    .catch(err => console.error("Error updating follow state:", err));
+  };
+
+  return (
+    <div style={{ padding: '20px', border: '1px solid #ccc', borderRadius: '8px', margin: '10px 0' }}>
+      <h3>👥 Community Profiles</h3>
+      <div style={{ display: 'flex', gap: '15px', flexWrap: 'wrap' }}>
+        {users.map(user => (
+          <div key={user.id} style={{ border: '1px solid #ddd', padding: '15px', borderRadius: '6px', width: '220px' }}>
+            <h4>{user.username} ({user.year})</h4>
+            <p style={{ fontSize: '12px', color: '#666' }}>{user.diploma}</p>
+            <p style={{ italic: 'true', fontSize: '13px' }}>"{user.bio}"</p>
+            <p style={{ fontSize: '12px' }}>
+              Followers: {user.followers.length} | Following: {user.following.length}
+            </p>
+            {user.id !== currentUserId && (
+              <button onClick={() => handleFollow(user.id)} style={{ cursor: 'pointer', padding: '5px 10px' }}>
+                Toggle Follow
+              </button>
+            )}
+          </div>
+        ))}
+      </div>
+    </div>
+  );
+};
+
+export default SocialFeatures;
