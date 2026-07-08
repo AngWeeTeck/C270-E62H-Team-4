@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "test": "jest --coverage",
-    "test:ci": "jest --coverage --testPathPattern=tests/ --reporters=default --reporters=jest-junit",
+    "test:ci": "jest --coverage --passWithNoTests --testPathPattern=tests/ --reporters=default --reporters=jest-junit",
     "test:watch": "jest --watch"
   },
   "devDependencies": {

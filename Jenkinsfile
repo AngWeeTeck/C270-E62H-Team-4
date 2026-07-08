@@ -302,11 +302,23 @@ pipeline {
                         BRANCH_TAG=$(echo "${GIT_BRANCH}" | sed -E 's#refs/heads/##; s#/#-#g; s/[^a-zA-Z0-9_.-]/-/g' | tr '[:upper:]' '[:lower:]')
                         echo "Using branch tag: $BRANCH_TAG"
 
-                        # Use the Jenkins workspace path so Docker can find the Dockerfile
-                        docker build -f "${WORKSPACE}/Dockerfile" \
+                        REPO_DIR=$(pwd)
+                        echo "Workspace directory: $REPO_DIR"
+
+                        if [ -f "$REPO_DIR/Dockerfile" ]; then
+                            DOCKERFILE="$REPO_DIR/Dockerfile"
+                        elif [ -f "${WORKSPACE}/Dockerfile" ]; then
+                            DOCKERFILE="${WORKSPACE}/Dockerfile"
+                        else
+                            echo "Dockerfile not found in $REPO_DIR or ${WORKSPACE}"
+                            ls -la "$REPO_DIR"
+                            exit 1
+                        fi
+
+                        docker build -f "$DOCKERFILE" \
                                    -t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} \
                                    -t ${DOCKER_IMAGE_NAME}:latest \
-                                   -t ${DOCKER_IMAGE_NAME}:$BRANCH_TAG "${WORKSPACE}"
+                                   -t ${DOCKER_IMAGE_NAME}:$BRANCH_TAG "$REPO_DIR"
 
                         echo ""
                         docker images | grep ${DOCKER_IMAGE_NAME} || true
