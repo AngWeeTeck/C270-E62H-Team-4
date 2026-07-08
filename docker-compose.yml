@@ -52,6 +52,8 @@ services:
     image: jenkins/jenkins:lts-jdk17
     container_name: jenkins-forum
     restart: unless-stopped
+    group_add:
+      - "989"
     ports:
       - "8080:8080"
       - "50000:50000"
@@ -60,7 +62,7 @@ services:
     volumes:
       - jenkins_home:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
-      - /usr/local/bin/docker:/usr/local/bin/docker
+      - /usr/bin/docker:/usr/bin/docker
     networks:
       - forum-network
     healthcheck:
