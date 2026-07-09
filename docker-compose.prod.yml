@@ -7,7 +7,7 @@ services:
       dockerfile: Dockerfile
     container_name: fastapi-production
     ports:
-      - "8002:8000"
+      - "8000:8000"
     networks:
       - app-network
 

@@ -2,17 +2,15 @@ pipeline {
     agent any
 
     parameters {
-        choice(name: 'ENVIRONMENT', choices: ['development', 'staging', 'production'], description: 'Deployment environment')
-        booleanParam(name: 'RUN_TESTS', defaultValue: true, description: 'Run all tests')
-        booleanParam(name: 'BUILD_DOCKER', defaultValue: true, description: 'Build Docker images')
-        booleanParam(name: 'DEPLOY', defaultValue: false, description: 'Deploy to environment')
+        string(name: 'DOCKER_USER', defaultValue: '', description: 'Docker Hub username')
+        choice(name: 'DEPLOY_TARGET', choices: ['staging', 'none'], description: 'Deployment target')
+        booleanParam(name: 'SKIP_SECURITY_SCAN', defaultValue: false, description: 'Skip security scan')
     }
 
     environment {
         DOCKER_REGISTRY = 'docker.io'
         DOCKER_IMAGE_NAME = 'forum-backend'
         DOCKER_IMAGE_TAG = "${BUILD_NUMBER}"
-        NODE_ENV = "${params.ENVIRONMENT}"
         NODEJS_VERSION = '18'
         PATH = "/usr/local/bin:/usr/bin:/bin:${env.PATH}"
     }
@@ -174,7 +172,7 @@ pipeline {
                             echo "Started app with PID $APP_PID"
 
                             for i in $(seq 1 20); do
-                                if curl -sf http://127.0.0.1:5001/api/health >/dev/null 2>&1; then
+                                if curl -sf http://127.0.0.1:8001/health >/dev/null 2>&1; then
                                     echo "✅ Application is running"
                                     kill $APP_PID
                                     wait $APP_PID || true
@@ -193,9 +191,6 @@ pipeline {
         }
 
         stage('Backend: Unit Tests') {
-            when {
-                expression { params.RUN_TESTS == true }
-            }
             agent {
                 docker {
                     image 'node:18'
@@ -229,9 +224,6 @@ pipeline {
         }
 
         stage('Frontend: Unit Tests') {
-            when {
-                expression { params.RUN_TESTS == true }
-            }
             agent {
                 docker {
                     image 'node:18'
@@ -265,6 +257,9 @@ pipeline {
         }
 
         stage('Security Scan') {
+            when {
+                expression { params.SKIP_SECURITY_SCAN == false }
+            }
             agent {
                 docker {
                     image 'node:18'
@@ -291,9 +286,6 @@ pipeline {
         }
 
         stage('Build Docker Image') {
-            when {
-                expression { params.BUILD_DOCKER == true }
-            }
             steps {
                 script {
                     echo '🐳 Building Docker image (running on Jenkins master where Docker socket is available)...'
@@ -335,11 +327,7 @@ pipeline {
 
         stage('Push Docker Image') {
             when {
-                allOf {
-                    branch 'main'
-                    expression { params.BUILD_DOCKER == true }
-                    expression { params.ENVIRONMENT == 'production' }
-                }
+                branch 'main'
             }
             agent {
                 docker {
@@ -350,13 +338,20 @@ pipeline {
             steps {
                 script {
                     echo '📤 Pushing Docker image to registry...'
-                    withCredentials([usernamePassword(credentialsId: 'docker-hub', usernameVariable: 'DOCKER_USER', passwordVariable: 'DOCKER_PASS')]) {
+                    withCredentials([usernamePassword(credentialsId: 'docker-hub', usernameVariable: 'DOCKER_HUB_USER', passwordVariable: 'DOCKER_PASS')]) {
                         sh '''
-                            echo "${DOCKER_PASS}" | docker login -u "${DOCKER_USER}" --password-stdin
-                            docker tag ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} ${DOCKER_USER}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
-                            docker tag ${DOCKER_IMAGE_NAME}:latest ${DOCKER_USER}/${DOCKER_IMAGE_NAME}:latest
-                            docker push ${DOCKER_USER}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
-                            docker push ${DOCKER_USER}/${DOCKER_IMAGE_NAME}:latest
+                            LOGIN_USER="${DOCKER_USER:-${DOCKER_HUB_USER}}"
+
+                            if [ -z "${LOGIN_USER}" ]; then
+                                echo "ERROR: Docker Hub username must be set either in the DOCKER_USER parameter or in the docker-hub Jenkins credential."
+                                exit 1
+                            fi
+
+                            echo "${DOCKER_PASS}" | docker login -u "${LOGIN_USER}" --password-stdin
+                            docker tag ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} ${LOGIN_USER}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
+                            docker tag ${DOCKER_IMAGE_NAME}:latest ${LOGIN_USER}/${DOCKER_IMAGE_NAME}:latest
+                            docker push ${LOGIN_USER}/${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG}
+                            docker push ${LOGIN_USER}/${DOCKER_IMAGE_NAME}:latest
                             docker logout
                             echo "✅ Docker image pushed to registry"
                         '''
@@ -365,49 +360,12 @@ pipeline {
             }
         }
 
-        stage('Deploy to Development') {
-            when {
-                allOf {
-                    branch 'main'
-                    expression { params.DEPLOY == true }
-                    expression { params.ENVIRONMENT == 'development' }
-                }
-            }
-            agent {
-                docker {
-                    image 'node:18'
-                    args '-v /var/run/docker.sock:/var/run/docker.sock -v /usr/local/bin/docker:/usr/local/bin/docker'
-                }
-            }
-            steps {
-                script {
-                    echo '🚀 Deploying to development environment...'
-                    sh '''
-                        echo "Starting development environment..."
-                        docker-compose -f docker-compose.dev.yml down || true
-                        docker-compose -f docker-compose.dev.yml up -d
-                        
-                        echo "Waiting for services to be ready..."
-                        sleep 5
-                        
-                        echo "✅ Development environment deployed"
-                        docker-compose -f docker-compose.dev.yml ps
-                    '''
-                }
-            }
-            post {
-                failure {
-                    echo '❌ Development deployment failed'
-                }
-            }
-        }
 
         stage('Deploy to Staging') {
             when {
                 allOf {
                     branch 'main'
-                    expression { params.DEPLOY == true }
-                    expression { params.ENVIRONMENT == 'staging' }
+                    expression { params.DEPLOY_TARGET == 'staging' }
                 }
             }
             agent {
@@ -436,48 +394,12 @@ pipeline {
             }
         }
 
-        stage('Deploy to Production') {
-            when {
-                allOf {
-                    branch 'main'
-                    expression { params.DEPLOY == true }
-                    expression { params.ENVIRONMENT == 'production' }
-                }
-            }
-            agent {
-                docker {
-                    image 'node:18'
-                    args '-v /var/run/docker.sock:/var/run/docker.sock -v /usr/local/bin/docker:/usr/local/bin/docker'
-                }
-            }
-            steps {
-                script {
-                    timeout(time: 5, unit: 'MINUTES') {
-                        input 'Deploy to production? This will affect live users!'
-                    }
-                    echo '🚀 Deploying to production environment...'
-                    withCredentials([sshUserPrivateKey(credentialsId: 'prod-server', keyFileVariable: 'KEY_FILE', usernameVariable: 'SSH_USER')]) {
-                        sh '''
-                            echo "Connecting to production server..."
-                            ssh -i ${KEY_FILE} -o StrictHostKeyChecking=no ${SSH_USER}@${PROD_SERVER} \
-                                "cd /app && docker-compose pull && docker-compose up -d && docker-compose ps"
-                            echo "✅ Production deployment completed"
-                        '''
-                    }
-                }
-            }
-            post {
-                failure {
-                    echo '❌ Production deployment failed'
-                }
-            }
-        }
 
         stage('Smoke Tests') {
             when {
                 allOf {
                     branch 'main'
-                    expression { params.DEPLOY == true }
+                    expression { params.DEPLOY_TARGET == 'staging' }
                 }
             }
             agent {
@@ -494,7 +416,7 @@ pipeline {
                         sleep 5
                         
                         echo "Testing health endpoint..."
-                        HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:5000/api/health)
+                        HEALTH=$(curl -s -o /dev/null -w "%{http_code}" http://localhost:8001/health)
                         
                         if [ "$HEALTH" -eq 200 ]; then
                             echo "✅ Health check passed"
