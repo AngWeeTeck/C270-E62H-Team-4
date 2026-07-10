@@ -14,8 +14,8 @@ app.use(cors());
 
 // Routes
 // Routes
-app.use('/api/threads', require('./routes/threads'));
-app.use('/api', require('./routes/replies'));
+//app.use('/api/threads', require('./routes/threads'));
+//app.use('/api', require('./routes/replies'));
 app.use('/api/notifications', require('./routes/notification'));
 app.use('/api/users', require('./routes/user'));
 // Health check
