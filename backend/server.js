@@ -1,7 +1,12 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const mongoose = require('mongoose');
 
+// Connects to the local Docker MongoDB we are about to start
+mongoose.connect('mongodb://127.0.0.1:27017/test_forum')
+  .then(() => console.log('🚀 Real MongoDB Connected Successfully!'))
+  .catch(err => console.error('❌ MongoDB Connection Error:', err));
 dotenv.config();
 
 const app = express();
