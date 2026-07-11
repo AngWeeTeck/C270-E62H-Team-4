@@ -3,17 +3,19 @@ const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
 const Reply = require('../models/Reply');
 const Thread = require('../models/Thread');
+const { optionalAuth, requireAuth } = require('../middleware/auth');
+const { getVoteSummary } = require('./votes');
 
 // Create reply to a thread
-router.post('/:threadId/replies', async (req, res) => {
+router.post('/:threadId/replies', requireAuth, async (req, res) => {
   try {
     const { threadId } = req.params;
-    const { content, author, richContent } = req.body;
+    const { content, richContent } = req.body;
 
     // Validation
-    if (!content || !author) {
+    if (!content) {
       return res.status(400).json({
-        error: 'Content and author are required'
+        error: 'Content is required'
       });
     }
 
@@ -26,8 +28,8 @@ router.post('/:threadId/replies', async (req, res) => {
     const reply = new Reply({
       id: uuidv4(),
       threadId,
-      content,
-      author,
+      content: content.trim(),
+      author: req.user.username,
       richContent: richContent || null
     });
 
@@ -38,14 +40,18 @@ router.post('/:threadId/replies', async (req, res) => {
     thread.replyCount = thread.replies.length;
     await thread.save();
 
-    res.status(201).json(savedReply);
+    res.status(201).json({
+      ...savedReply.toObject(),
+      score: 0,
+      userVote: 0
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
 // Get all replies for a thread
-router.get('/:threadId/replies', async (req, res) => {
+router.get('/:threadId/replies', optionalAuth, async (req, res) => {
   try {
     const { threadId } = req.params;
     const page = parseInt(req.query.page) || 1;
@@ -62,11 +68,17 @@ router.get('/:threadId/replies', async (req, res) => {
       .sort({ createdAt: 1 })
       .skip(skip)
       .limit(limit);
+    const repliesWithVotes = await Promise.all(
+      replies.map(async (reply) => ({
+        ...reply.toObject(),
+        ...(await getVoteSummary('reply', reply.id, req.user?._id))
+      }))
+    );
 
     const total = await Reply.countDocuments({ threadId });
 
     res.json({
-      replies,
+      replies: repliesWithVotes,
       pagination: {
         page,
         limit,
@@ -80,7 +92,7 @@ router.get('/:threadId/replies', async (req, res) => {
 });
 
 // Get single reply
-router.get('/reply/:replyId', async (req, res) => {
+router.get('/reply/:replyId', optionalAuth, async (req, res) => {
   try {
     const reply = await Reply.findOne({ id: req.params.replyId });
 
@@ -88,14 +100,17 @@ router.get('/reply/:replyId', async (req, res) => {
       return res.status(404).json({ error: 'Reply not found' });
     }
 
-    res.json(reply);
+    res.json({
+      ...reply.toObject(),
+      ...(await getVoteSummary('reply', reply.id, req.user?._id))
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
 // Update reply
-router.put('/reply/:replyId', async (req, res) => {
+router.put('/reply/:replyId', requireAuth, async (req, res) => {
   try {
     const { content, richContent } = req.body;
 
@@ -116,7 +131,7 @@ router.put('/reply/:replyId', async (req, res) => {
 });
 
 // Delete reply
-router.delete('/reply/:replyId', async (req, res) => {
+router.delete('/reply/:replyId', requireAuth, async (req, res) => {
   try {
     const reply = await Reply.findOneAndDelete({ id: req.params.replyId });
 

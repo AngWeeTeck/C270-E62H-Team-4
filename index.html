@@ -23,11 +23,25 @@
       }
 
       .hero {
-        background: linear-gradient(135deg, #2563eb, #7c3aed);
+        background: linear-gradient(135deg, #1d4ed8, #0f766e);
         color: white;
         padding: 24px;
-        border-radius: 16px;
+        border-radius: 12px;
         margin-bottom: 24px;
+      }
+
+      .topbar {
+        align-items: center;
+        display: flex;
+        gap: 12px;
+        justify-content: space-between;
+        margin-bottom: 18px;
+      }
+
+      .nav-actions {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 8px;
       }
 
       .grid {
@@ -38,12 +52,12 @@
 
       .panel {
         background: white;
-        border-radius: 16px;
+        border-radius: 12px;
         padding: 20px;
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
       }
 
-      .forum-container, .rich-text-editor {
+      .forum-container, .rich-text-editor, .auth-card {
         border: 1px solid #e5e7eb;
         border-radius: 12px;
         padding: 16px;
@@ -60,6 +74,11 @@
 
       .btn-primary, .format-btn {
         background: #2563eb;
+        color: white;
+      }
+
+      .btn-danger {
+        background: #991b1b;
         color: white;
       }
 
@@ -80,6 +99,100 @@
         margin: 0 0 6px;
       }
 
+      .thread-meta, .reply-header, .forum-header {
+        align-items: center;
+        display: flex;
+        flex-wrap: wrap;
+        gap: 10px;
+        justify-content: space-between;
+      }
+
+      .forum-auth-state, .auth-copy, .field-error, .form-message {
+        color: #4b5563;
+        margin: 6px 0 0;
+      }
+
+      .vote-controls {
+        align-items: center;
+        display: inline-flex;
+        gap: 6px;
+      }
+
+      .vote-btn {
+        background: #eef2ff;
+        border: 1px solid #c7d2fe;
+        border-radius: 8px;
+        color: #1e3a8a;
+        cursor: pointer;
+        font-weight: 800;
+        height: 34px;
+        width: 34px;
+      }
+
+      .vote-btn:disabled {
+        cursor: wait;
+        opacity: 0.65;
+      }
+
+      .vote-active {
+        background: #2563eb;
+        border-color: #1d4ed8;
+        color: white;
+      }
+
+      .vote-score {
+        font-weight: 800;
+        min-width: 24px;
+        text-align: center;
+      }
+
+      .auth-form, .auth-card, #create-thread-form {
+        display: grid;
+        gap: 12px;
+      }
+
+      .auth-form label, #create-thread-form label, .add-reply-section label {
+        color: #1f2937;
+        display: grid;
+        font-weight: 700;
+        gap: 6px;
+      }
+
+      .auth-form input, #create-thread-form input, #create-thread-form textarea {
+        border: 1px solid #d1d5db;
+        border-radius: 8px;
+        font: inherit;
+        padding: 10px;
+      }
+
+      .password-row {
+        display: grid;
+        gap: 8px;
+        grid-template-columns: 1fr auto;
+      }
+
+      .password-toggle, .auth-switch button {
+        background: transparent;
+        border: 0;
+        color: #1d4ed8;
+        cursor: pointer;
+        font-weight: 800;
+      }
+
+      .field-error, .form-message-error {
+        color: #b91c1c;
+      }
+
+      .form-message-success {
+        color: #047857;
+      }
+
+      .eyebrow {
+        color: #1d4ed8;
+        font-weight: 900;
+        margin: 0;
+      }
+
       .editor-textarea {
         width: 100%;
         min-height: 160px;
@@ -98,6 +211,31 @@
         border-radius: 8px;
       }
 
+      .modal-overlay {
+        align-items: center;
+        background: rgba(15, 23, 42, 0.48);
+        display: flex;
+        inset: 0;
+        justify-content: center;
+        padding: 20px;
+        position: fixed;
+        z-index: 900;
+      }
+
+      .modal-content {
+        background: white;
+        border-radius: 12px;
+        max-width: 520px;
+        padding: 20px;
+        width: 100%;
+      }
+
+      .modal-buttons {
+        display: flex;
+        gap: 10px;
+        justify-content: flex-end;
+      }
+
       @media (max-width: 900px) {
         .grid {
           grid-template-columns: 1fr;
@@ -107,13 +245,25 @@
   </head>
   <body>
     <div class="page">
+      <div class="topbar">
+        <strong>Thread Quest</strong>
+        <div class="nav-actions">
+          <button id="show-login-btn" class="btn btn-secondary" type="button">Login</button>
+          <button id="show-register-btn" class="btn btn-primary" type="button">Create account</button>
+          <button id="logout-btn" class="btn btn-danger" type="button" style="display:none;">Logout</button>
+        </div>
+      </div>
       <div class="hero">
-        <h1>Forum and Rich Text Editor Preview</h1>
-        <p>This page renders the forum discussion view and the editor so you can inspect the UI.</p>
+        <h1>Thread Quest</h1>
+        <p>Discuss topics, reply to threads, and vote on useful contributions.</p>
       </div>
 
+      <section id="auth-panel" class="panel" style="display:none; margin-bottom:24px;">
+        <div id="auth-root"></div>
+      </section>
+
       <div class="grid">
-        <section class="panel">
+        <section id="forum-section" class="panel">
           <h2>Forum Discussions</h2>
           <div id="forum-root"></div>
         </section>
@@ -125,11 +275,41 @@
       </div>
     </div>
 
+    <script src="./frontend/components/AuthService.js"></script>
+    <script src="./frontend/components/AuthPages.js"></script>
     <script src="./frontend/components/ForumDisplay.js"></script>
     <script src="./frontend/components/RichTextEditor.js"></script>
     <script>
       document.addEventListener('DOMContentLoaded', () => {
-        new ForumDisplay('forum-root', { apiUrl: 'http://127.0.0.1:5000/api' });
+        const apiUrl = 'http://127.0.0.1:5000/api';
+        AuthService.configure({ apiUrl });
+        let authPages = null;
+
+        function renderAuth(mode) {
+          document.getElementById('auth-panel').style.display = 'block';
+          authPages = new AuthPages('auth-root', { apiUrl, mode });
+        }
+
+        function syncAuthButtons() {
+          const isLoggedIn = AuthService.isLoggedIn();
+          document.getElementById('logout-btn').style.display = isLoggedIn ? 'inline-block' : 'none';
+          document.getElementById('show-login-btn').style.display = isLoggedIn ? 'none' : 'inline-block';
+          document.getElementById('show-register-btn').style.display = isLoggedIn ? 'none' : 'inline-block';
+          if (isLoggedIn) {
+            document.getElementById('auth-panel').style.display = 'none';
+          }
+        }
+
+        document.getElementById('show-login-btn').addEventListener('click', () => renderAuth('login'));
+        document.getElementById('show-register-btn').addEventListener('click', () => renderAuth('register'));
+        document.getElementById('logout-btn').addEventListener('click', async () => {
+          await AuthService.logout();
+          renderAuth('login');
+        });
+        window.addEventListener('threadquest-auth-changed', syncAuthButtons);
+
+        syncAuthButtons();
+        new ForumDisplay('forum-root', { apiUrl, useApi: true });
         new RichTextEditor('editor-root');
       });
     </script>

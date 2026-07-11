@@ -1,6 +1,7 @@
 const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
+const mongoose = require('mongoose');
 
 dotenv.config();
 
@@ -13,8 +14,10 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 
 // Routes
+app.use('/api/auth', require('./routes/auth'));
 app.use('/api/threads', require('./routes/threads'));
 app.use('/api', require('./routes/replies'));
+app.use('/api/votes', require('./routes/votes').router);
 
 // Health check
 app.get('/api/health', (req, res) => {
@@ -27,8 +30,12 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: 'Internal server error' });
 });
 
-// Note: In a production environment, connect to MongoDB here
-// For testing purposes, we use mock data
+if (process.env.NODE_ENV !== 'test' && process.env.MONGODB_URI) {
+  mongoose
+    .connect(process.env.MONGODB_URI)
+    .then(() => console.log('Connected to MongoDB'))
+    .catch((error) => console.error('MongoDB connection error:', error.message));
+}
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
