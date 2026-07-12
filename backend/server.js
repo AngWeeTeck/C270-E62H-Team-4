@@ -7,6 +7,18 @@ const app = express();
 
 const PORT = 5000;
 
+const path = require("path");
+
+app.use(
+  express.static(path.join(__dirname, "..", "frontend"))
+);
+
+app.get("/", (req, res) => {
+  res.sendFile(
+    path.join(__dirname, "..", "frontend", "gamification.html")
+  );
+});
+
 app.use(cors());
 app.use(express.json());
 
