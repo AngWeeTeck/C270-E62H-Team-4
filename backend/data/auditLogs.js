@@ -1,24 +1,29 @@
 const auditLogs = [];
 
-function addAuditLog(action, reportId) {
-
+function addAuditLog(entry) {
     const log = {
-        action: action,
-        reportId: reportId,
-        timestamp: new Date()
+        action: entry.action,
+        reportId: entry.reportId || null,
+        actor: entry.actor || "system",
+        target: entry.target || null,
+        outcome: entry.outcome || "recorded",
+        details: entry.details || null,
+        timestamp: new Date().toISOString()
     };
 
     auditLogs.push(log);
-
 }
 
 function getAuditLogs() {
-
     return auditLogs;
+}
 
+function resetAuditLogs() {
+    auditLogs.length = 0;
 }
 
 module.exports = {
     addAuditLog,
-    getAuditLogs
+    getAuditLogs,
+    resetAuditLogs
 };
