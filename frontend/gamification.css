@@ -1089,3 +1089,61 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 }
+
+/* ==========================================
+   REWARD VOUCHERS
+========================================== */
+
+.vouchers {
+  margin-top: 18px;
+  padding: 14px;
+  border: 1px solid #fcd34d;
+  border-radius: 16px;
+  background: linear-gradient(135deg, #fffbeb, #fff7ed);
+}
+
+.vouchers h3 {
+  margin-top: 0;
+}
+
+.voucher-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 14px;
+  margin-top: 12px;
+  padding: 14px;
+  border: 1px solid #fde68a;
+  border-radius: 14px;
+  background: white;
+}
+
+.voucher-item p {
+  margin: 6px 0;
+  color: #6b7280;
+  font-size: 14px;
+}
+
+.voucher-item small {
+  color: #92400e;
+  font-weight: 700;
+}
+
+.redeem-voucher-btn {
+  flex: 0 0 auto;
+  background: linear-gradient(135deg, #f59e0b, #f97316);
+}
+
+.voucher-item.redeemed {
+  opacity: 0.72;
+  background: #f3f4f6;
+}
+
+.voucher-popup-reward {
+  margin-top: 10px;
+  padding: 12px;
+  border: 1px solid #fcd34d;
+  border-radius: 12px;
+  background: #fffbeb;
+  color: #92400e !important;
+}

@@ -20,6 +20,7 @@ function getDefaultPlayer(author) {
     studentsHelped: 0,
 
     ownedItems: [],
+    vouchers: [],
     achievements: [],
 
     appliedTheme: 'default',

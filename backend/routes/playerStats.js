@@ -323,4 +323,44 @@ router.post('/:author/dev/:action', (req, res) => {
   }
 });
 
+// Redeem voucher
+router.post("/:author/vouchers/:voucherId/redeem", (req, res) => {
+  try {
+    const player = PlayerStats.getPlayer(req.params.author);
+
+    player.vouchers = player.vouchers || [];
+
+    const voucher = player.vouchers.find(
+      item => item.id === req.params.voucherId
+    );
+
+    if (!voucher) {
+      return res.status(404).json({
+        error: "Voucher not found."
+      });
+    }
+
+    if (voucher.redeemed) {
+      return res.status(400).json({
+        error: "Voucher has already been redeemed."
+      });
+    }
+
+    voucher.redeemed = true;
+    voucher.dateRedeemed = new Date().toISOString();
+
+    PlayerStats.savePlayer(player);
+
+    res.json({
+      message: `${voucher.name} redeemed`,
+      voucher,
+      stats: player
+    });
+  } catch (err) {
+    res.status(500).json({
+      error: err.message
+    });
+  }
+});
+
 module.exports = router;

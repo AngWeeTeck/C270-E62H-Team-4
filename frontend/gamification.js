@@ -21,6 +21,7 @@ async function loadPlayer() {
     currentPlayer = result;
     currentPlayer.ownedItems = currentPlayer.ownedItems || [];
     currentPlayer.achievements = currentPlayer.achievements || [];
+    currentPlayer.vouchers = currentPlayer.vouchers || [];
     renderAll();
   } catch (error) {
     showToast(error.message || "Unable to connect to backend.", "error");
@@ -49,6 +50,12 @@ function setupButtons() {
         button.onclick = () => {
             applyItem(button.dataset.item);
         };
+    });
+
+    document.querySelectorAll(".redeem-voucher-btn").forEach(button => {
+      button.onclick = () => {
+        redeemVoucher(button.dataset.voucherId);
+      };
     });
 
     const claimButton = document.getElementById("claimDailyRewardBtn");
@@ -157,6 +164,39 @@ async function equipRewardCosmetic(item) {
   });
 }
 
+async function redeemVoucher(voucherId) {
+  const confirmed = window.confirm(
+    "Redeem this voucher now? This action cannot be undone."
+  );
+
+  if (!confirmed) {
+    return;
+  }
+
+  try {
+    const response = await fetch(
+      `${API_URL}/${AUTHOR}/vouchers/${voucherId}/redeem`,
+      {
+        method: "POST"
+      }
+    );
+
+    const result = await response.json();
+
+    if (!response.ok) {
+      showToast(result.error || "Unable to redeem voucher.", "error");
+      return;
+    }
+
+    currentPlayer = result.stats;
+    renderAll();
+
+    showToast(`🎟 ${result.voucher.name} redeemed!`);
+  } catch (error) {
+    showToast("Unable to connect to the backend.", "error");
+  }
+}
+
 function showToast(message, type = "success") {
   const toast = document.createElement("div");
   toast.className = `toast ${type}`;
@@ -194,6 +234,16 @@ function showAchievementPopups(achievements) {
               ? `<p class="cosmetic-reward">
                   🎨 New Cosmetic Unlocked!<br>
                   <strong>${achievement.cosmeticReward}</strong>
+                </p>`
+              : ""
+          }
+
+          ${
+            achievement.voucherReward
+              ? `<p class="voucher-popup-reward">
+                  🎟 Voucher Unlocked!<br>
+                  <strong>${achievement.voucherReward.name}</strong><br>
+                  <small>${achievement.voucherReward.discount} discount</small>
                 </p>`
               : ""
           }

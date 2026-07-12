@@ -44,7 +44,7 @@ class PlayerProfileCard {
       const frames = [];
       const badges = [];
 
-      player.ownedItems.forEach(item => {
+      (player.ownedItems || []).forEach(item => {
         if (item.includes("Theme")) {
           themes.push(item);
         } else if (item.includes("Frame")) {
@@ -91,8 +91,28 @@ const inventory =
       ${renderInventoryCategory("🏅 Badges", badges, "badge-category")}
     `
     : `<p>No items owned yet.</p>`;
+
+const vouchers = player.vouchers?.length
+  ? player.vouchers.map(voucher => `
+      <div class="voucher-item ${voucher.redeemed ? "redeemed" : ""}">
+        <div>
+          <strong>🎟 ${voucher.name}</strong>
+          <p>${voucher.description}</p>
+          <small>Discount: ${voucher.discount}</small>
+        </div>
+
+        <button
+          class="redeem-voucher-btn"
+          data-voucher-id="${voucher.id}"
+          ${voucher.redeemed ? "disabled" : ""}
+        >
+          ${voucher.redeemed ? "Redeemed" : "Redeem"}
+        </button>
+      </div>
+    `).join("")
+  : `<p>No vouchers unlocked yet.</p>`;
     
-    const achievementCatalog = [
+const achievementCatalog = [
   {
     id: "first_steps",
     name: "🌱 First Steps",
@@ -128,10 +148,22 @@ const inventory =
     description: "Own all 3 shop cosmetics.",
     progressText: `${["Blue Profile Theme", "Gold Avatar Frame", "Special Title Badge"].filter(item => player.ownedItems.includes(item)).length} / 3 Items`,
     progressPercent: Math.min((["Blue Profile Theme", "Gold Avatar Frame", "Special Title Badge"].filter(item => player.ownedItems.includes(item)).length / 3) * 100, 100)
-  }
+  },
+  {
+    id: "community_helper",
+    name: "🤝 Community Helper",
+    rarity: "EPIC",
+    reward: 100,
+    description: "Help 10 students.",
+    progressText: `${player.studentsHelped || 0} / 10 Students`,
+    progressPercent: Math.min(
+      ((player.studentsHelped || 0) / 10) * 100,
+      100
+    )
+}
 ];
 
-const unlockedCount = player.achievements.length;
+const unlockedCount = (player.achievements || []).length;
 const totalAchievements = achievementCatalog.length;
 const achievementProgress = Math.min((unlockedCount / totalAchievements) * 100, 100);
 
@@ -216,9 +248,13 @@ const achievements = achievementCatalog.map(achievement => {
         </div>
 
         <div class="inventory">
-        
           <h3>🎒 Inventory</h3>
           ${inventory}
+        </div>
+
+        <div class="vouchers">
+          <h3>🎟 Reward Vouchers</h3>
+          ${vouchers}
         </div>
 
         <div class="achievements">

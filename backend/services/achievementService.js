@@ -30,7 +30,20 @@ const achievementCatalog = [
     reward: 100,
     description: 'Own all 3 shop cosmetics.',
     cosmeticReward: '🔥 Phoenix Frame'
-  }
+  },
+  {
+    id: "community_helper",
+    name: "🤝 Community Helper",
+    rarity: "EPIC",
+    reward: 100,
+    description: "Help 10 students.",
+    voucherReward: {
+      id: "rp-food-5",
+      name: "RP Food Discount Voucher",
+      description: "Enjoy 5% off at participating RP food stalls.",
+      discount: "5%"
+    }
+}
 ];
 
 const SHOP_COSMETICS = [
@@ -63,10 +76,30 @@ function unlockAchievement(player, achievement, unlocked) {
     player.ownedItems.push(achievement.cosmeticReward);
   }
 
+  if (achievement.voucherReward) {
+    player.vouchers = player.vouchers || [];
+
+    const alreadyOwned = player.vouchers.some(
+      voucher => voucher.id === achievement.voucherReward.id
+    );
+
+    if (!alreadyOwned) {
+      player.vouchers.push({
+        ...achievement.voucherReward,
+        redeemed: false,
+        dateUnlocked: new Date().toISOString()
+      });
+    }
+  }
+
   unlocked.push(newAchievement);
 }
 
 function checkAchievements(player) {
+  player.ownedItems = player.ownedItems || [];
+  player.achievements = player.achievements || [];
+  player.vouchers = player.vouchers || [];
+
   const unlocked = [];
   const ownsAllShopCosmetics = SHOP_COSMETICS.every(item =>
     player.ownedItems.includes(item)
@@ -86,6 +119,13 @@ function checkAchievements(player) {
     }
 
     if (achievement.id === 'collector' && ownsAllShopCosmetics) {
+      unlockAchievement(player, achievement, unlocked);
+    }
+
+    if (
+      achievement.id === "community_helper" &&
+      (player.studentsHelped || 0) >= 10
+    ) {
       unlockAchievement(player, achievement, unlocked);
     }
   });
