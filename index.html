@@ -44,12 +44,6 @@
         gap: 8px;
       }
 
-      .grid {
-        display: grid;
-        grid-template-columns: 1.2fr 0.8fr;
-        gap: 24px;
-      }
-
       .panel {
         background: white;
         border-radius: 12px;
@@ -57,7 +51,7 @@
         box-shadow: 0 10px 30px rgba(0, 0, 0, 0.08);
       }
 
-      .forum-container, .rich-text-editor, .auth-card {
+      .forum-container, .auth-card {
         border: 1px solid #e5e7eb;
         border-radius: 12px;
         padding: 16px;
@@ -193,24 +187,6 @@
         margin: 0;
       }
 
-      .editor-textarea {
-        width: 100%;
-        min-height: 160px;
-        border: 1px solid #d1d5db;
-        border-radius: 8px;
-        padding: 10px;
-        box-sizing: border-box;
-        margin-top: 10px;
-      }
-
-      .preview-container {
-        margin-top: 12px;
-        padding: 12px;
-        background: white;
-        border: 1px dashed #cbd5e1;
-        border-radius: 8px;
-      }
-
       .modal-overlay {
         align-items: center;
         background: rgba(15, 23, 42, 0.48);
@@ -236,11 +212,6 @@
         justify-content: flex-end;
       }
 
-      @media (max-width: 900px) {
-        .grid {
-          grid-template-columns: 1fr;
-        }
-      }
     </style>
   </head>
   <body>
@@ -262,23 +233,15 @@
         <div id="auth-root"></div>
       </section>
 
-      <div class="grid">
-        <section id="forum-section" class="panel">
-          <h2>Forum Discussions</h2>
-          <div id="forum-root"></div>
-        </section>
-
-        <section class="panel">
-          <h2>Rich Text Editor</h2>
-          <div id="editor-root"></div>
-        </section>
-      </div>
+      <section id="forum-section" class="panel">
+        <h2>Forum Discussions</h2>
+        <div id="forum-root"></div>
+      </section>
     </div>
 
     <script src="./frontend/components/AuthService.js"></script>
     <script src="./frontend/components/AuthPages.js"></script>
     <script src="./frontend/components/ForumDisplay.js"></script>
-    <script src="./frontend/components/RichTextEditor.js"></script>
     <script>
       document.addEventListener('DOMContentLoaded', () => {
         const apiUrl = 'http://127.0.0.1:5000/api';
@@ -310,7 +273,6 @@
 
         syncAuthButtons();
         new ForumDisplay('forum-root', { apiUrl, useApi: true });
-        new RichTextEditor('editor-root');
       });
     </script>
   </body>
