@@ -3,7 +3,7 @@ import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { resolveUploadedUrl } from '../utils/upload';
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000/api';
+const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 
 const quillModules = {
   toolbar: [
@@ -28,16 +28,23 @@ export default function ReplyForm({ threadId, onReplyCreated }) {
   const determineEmbedType = (url) => {
     const normalized = url.toLowerCase();
     if (normalized.includes('youtube.com') || normalized.includes('youtu.be')) return 'youtube';
-    if (normalized.endsWith('.pdf')) return 'pdf';
     if (normalized.match(/\.(png|jpe?g|gif|webp)$/)) return 'image';
     return 'link';
   };
 
   const addEmbed = () => {
     if (!embedUrl) return;
+
+    const normalizedUrl = embedUrl.trim();
+    const embedType = determineEmbedType(normalizedUrl);
+    if (embedType === 'link') {
+      setStatus('Paste a YouTube or image URL here. For PDFs, please use Upload a file instead.');
+      return;
+    }
+
     setEmbeds((current) => [
       ...current,
-      { type: determineEmbedType(embedUrl), url: embedUrl, title: '' }
+      { type: embedType, url: normalizedUrl, title: '' }
     ]);
     setEmbedUrl('');
   };
@@ -146,14 +153,14 @@ export default function ReplyForm({ threadId, onReplyCreated }) {
       <div className="embed-panel reply-embed-panel">
         <div className="embed-heading">
           <span>Embed a link</span>
-          <p>Paste a YouTube, PDF, or image URL to attach it to your reply.</p>
+          <p>Paste a YouTube or image URL to attach it to your reply.</p>
         </div>
         <div className="embed-actions">
           <input
             className="embed-input"
             value={embedUrl}
             onChange={(e) => setEmbedUrl(e.target.value)}
-            placeholder="YouTube, PDF, or image URL"
+            placeholder="YouTube or image URL"
           />
           <button type="button" className="small-pill" onClick={addEmbed}>Add link</button>
         </div>

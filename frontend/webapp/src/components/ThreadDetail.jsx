@@ -4,7 +4,7 @@ import ReplyForm from './ReplyForm';
 import MediaRenderer from './MediaRenderer';
 import { resolveReplyCount } from '../utils/replyCount';
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000/api';
+const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 
 export default function ThreadDetail({ thread, onClose, onThreadUpdated }) {
   const [replies, setReplies] = useState([]);
