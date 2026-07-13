@@ -19,14 +19,12 @@ app.use((req, res, next) => {
     next();
 });
 
-// Serve the frontend
 app.use(express.static(path.join(__dirname, "../frontend")));
 
 app.get("/", (req, res) => {
     res.sendFile(path.join(__dirname, "../frontend/gamification.html"));
 });
 
-// API Routes
 app.use("/api/player-stats", playerStatsRoutes);
 
 app.get("/api/health", (req, res) => {

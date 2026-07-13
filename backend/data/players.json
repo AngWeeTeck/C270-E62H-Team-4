@@ -2,25 +2,46 @@
   "players": {
     "You": {
       "author": "You",
-      "xp": 0,
+      "xp": 20,
       "level": 1,
       "title": "New Adventurer",
       "rank": "🌱 Freshman",
-      "coins": 0,
-      "totalXpEarned": 0,
-      "totalCoinsEarned": 0,
+      "coins": 40,
+      "totalXpEarned": 20,
+      "totalCoinsEarned": 15,
       "totalCoinsSpent": 0,
-      "highestDailyStreak": 0,
+      "highestDailyStreak": 1,
       "studyQuestsCompleted": 0,
       "studentsHelped": 0,
       "ownedItems": [],
-      "achievements": [],
+      "achievements": [
+        {
+          "id": "first_steps",
+          "name": "🌱 First Steps",
+          "rarity": "COMMON",
+          "reward": 25,
+          "description": "Earn your first XP.",
+          "cosmeticReward": null,
+          "dateUnlocked": "2026-07-13T02:49:30.597Z"
+        }
+      ],
       "appliedTheme": "default",
       "appliedFrame": "default",
       "appliedBadge": "default",
-      "dailyStreak": 0,
-      "lastDailyRewardDate": null,
-      "dailyRewardsClaimed": 0
+      "dailyStreak": 1,
+      "lastDailyRewardDate": "2026-07-13",
+      "dailyRewardsClaimed": 1,
+      "lastUnlockedAchievements": [
+        {
+          "id": "first_steps",
+          "name": "🌱 First Steps",
+          "rarity": "COMMON",
+          "reward": 25,
+          "description": "Earn your first XP.",
+          "cosmeticReward": null,
+          "dateUnlocked": "2026-07-13T02:49:30.597Z"
+        }
+      ]
     }
   }
 }
