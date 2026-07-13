@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
+const { createStore } = require('../dataStore');
 const Thread = require('../models/Thread');
 const Reply = require('../models/Reply');
 
@@ -15,6 +16,16 @@ const resolveRichContent = (body = {}) => {
     html: body.content || '',
     embeds: []
   };
+};
+
+const getMemoryStore = (req) => {
+  if (req.app.locals.dataStore) {
+    return req.app.locals.dataStore;
+  }
+
+  const store = createStore();
+  req.app.locals.dataStore = store;
+  return store;
 };
 
 const serializeThread = async (thread) => {
@@ -64,6 +75,7 @@ router.post('/', async (req, res) => {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
+      getMemoryStore(req).addThread(thread);
       req.app.locals.memoryThreads.push(thread);
       return res.status(201).json(await serializeThread(thread));
     }
@@ -206,6 +218,7 @@ router.delete('/:threadId', async (req, res) => {
       if (threadIndex === -1) {
         return res.status(404).json({ error: 'Thread not found' });
       }
+      getMemoryStore(req).deleteThread(req.params.threadId);
       req.app.locals.memoryThreads.splice(threadIndex, 1);
       req.app.locals.memoryReplies = (req.app.locals.memoryReplies || []).filter((reply) => reply.threadId !== req.params.threadId);
       return res.json({ message: 'Thread deleted successfully' });

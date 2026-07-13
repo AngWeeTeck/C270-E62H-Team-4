@@ -288,6 +288,22 @@ textarea::placeholder {
   color: #64748b;
 }
 
+.embed-help-text,
+.upload-media-help {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #64748b;
+  line-height: 1.5;
+}
+
+.upload-media-field {
+  margin-bottom: 1.25rem;
+}
+
+.upload-media-field span {
+  margin-bottom: 0.2rem;
+}
+
 .embed-actions {
   display: flex;
   gap: 0.75rem;
@@ -396,8 +412,11 @@ textarea::placeholder {
 .media-image {
   display: block;
   width: 100%;
+  max-width: 100%;
   max-height: 320px;
+  height: auto;
   object-fit: contain;
+  border-radius: 0.75rem;
   background: #f8fafc;
 }
 

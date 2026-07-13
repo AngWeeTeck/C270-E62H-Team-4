@@ -1,6 +1,7 @@
 import { useState } from 'react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
+import { resolveUploadedUrl } from '../utils/upload';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000/api';
 
@@ -21,6 +22,8 @@ export default function ReplyForm({ threadId, onReplyCreated }) {
   const [embedUrl, setEmbedUrl] = useState('');
   const [embeds, setEmbeds] = useState([]);
   const [status, setStatus] = useState('');
+  const [uploading, setUploading] = useState(false);
+  const [uploadError, setUploadError] = useState('');
 
   const determineEmbedType = (url) => {
     const normalized = url.toLowerCase();
@@ -40,16 +43,31 @@ export default function ReplyForm({ threadId, onReplyCreated }) {
   };
 
   const uploadMedia = async (file) => {
-    const formData = new FormData();
-    formData.append('file', file);
+    if (!file) return;
 
-    const response = await fetch(`${API_BASE}/upload`, {
-      method: 'POST',
-      body: formData
-    });
-    const data = await response.json();
-    if (!response.ok) throw new Error(data.detail || 'Upload failed');
-    setEmbeds((current) => [...current, { type: 'image', url: data.url, title: file.name }]);
+    setUploading(true);
+    setUploadError('');
+
+    try {
+      const formData = new FormData();
+      formData.append('file', file);
+
+      const response = await fetch(`${API_BASE}/upload`, {
+        method: 'POST',
+        body: formData
+      });
+      const data = await response.json();
+      if (!response.ok) throw new Error(data.detail || 'Upload failed');
+
+      const hostedUrl = resolveUploadedUrl(data.url, `${API_BASE}`);
+      const fileType = file.type.includes('pdf') ? 'pdf' : file.type.startsWith('image/') ? 'image' : 'link';
+      setEmbeds((current) => [...current, { type: fileType, url: hostedUrl, title: file.name }]);
+      setStatus(`Uploaded ${file.name}`);
+    } catch (error) {
+      setUploadError(error.message || 'Upload failed');
+    } finally {
+      setUploading(false);
+    }
   };
 
   const postReply = async (event) => {
@@ -127,8 +145,8 @@ export default function ReplyForm({ threadId, onReplyCreated }) {
       </div>
       <div className="embed-panel reply-embed-panel">
         <div className="embed-heading">
-          <span>Embed media</span>
-          <p>Share a YouTube link, PDF, or image URL.</p>
+          <span>Embed a link</span>
+          <p>Paste a YouTube, PDF, or image URL to attach it to your reply.</p>
         </div>
         <div className="embed-actions">
           <input
@@ -137,8 +155,9 @@ export default function ReplyForm({ threadId, onReplyCreated }) {
             onChange={(e) => setEmbedUrl(e.target.value)}
             placeholder="YouTube, PDF, or image URL"
           />
-          <button type="button" className="small-pill" onClick={addEmbed}>➕ Embed</button>
+          <button type="button" className="small-pill" onClick={addEmbed}>Add link</button>
         </div>
+        <p className="embed-help-text">Have a file on your device? Upload it below. Prefer a web link instead? Paste it above.</p>
       </div>
       {embeds.length > 0 && (
         <div className="embed-list">
@@ -147,10 +166,13 @@ export default function ReplyForm({ threadId, onReplyCreated }) {
           ))}
         </div>
       )}
-      <label>
-        <span>Upload image</span>
-        <input type="file" accept="image/*" onChange={(e) => e.target.files?.[0] && uploadMedia(e.target.files[0])} />
+      <label className="upload-media-field">
+        <span>Upload a file</span>
+        <p className="upload-media-help">Use this for images or PDFs from your device. The file is sent to the server and turned into a hosted link.</p>
+        <input type="file" accept="image/*,.pdf" onChange={(e) => e.target.files?.[0] && uploadMedia(e.target.files[0])} />
       </label>
+      {uploading && <p className="status-text">Uploading file…</p>}
+      {uploadError && <p className="status-text">{uploadError}</p>}
       <label>
         <span>Your name</span>
         <input value={username} onChange={(e) => setUsername(e.target.value)} />

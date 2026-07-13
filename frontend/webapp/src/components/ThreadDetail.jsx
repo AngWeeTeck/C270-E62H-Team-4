@@ -1,74 +1,10 @@
 import { useEffect, useState } from 'react';
 import { AiOutlineClose } from 'react-icons/ai';
 import ReplyForm from './ReplyForm';
+import MediaRenderer from './MediaRenderer';
 import { resolveReplyCount } from '../utils/replyCount';
-import { getEmbedsFromRichContent, getYoutubeEmbedUrl, inferEmbedType } from '../utils/mediaEmbeds';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000/api';
-
-function MediaRenderer({ payload }) {
-  const embeds = getEmbedsFromRichContent(payload || {});
-  const [imageError, setImageError] = useState(false);
-
-  if (embeds.length === 0) {
-    return null;
-  }
-
-  return (
-    <div className="media-embed-list">
-      {embeds.map((embed, index) => {
-        const type = embed.type || inferEmbedType(embed.url || '');
-        if (type === 'image' && embed.url && !imageError) {
-          return (
-            <div key={`${embed.url}-${index}`} className="media-embed-card">
-              <img
-                className="media-image"
-                src={embed.url}
-                alt={embed.title || 'Embedded media'}
-                onError={() => setImageError(true)}
-              />
-            </div>
-          );
-        }
-
-        if (type === 'youtube' && embed.url) {
-          const iframeUrl = getYoutubeEmbedUrl(embed.url);
-          return (
-            <div key={`${embed.url}-${index}`} className="media-embed-card">
-              {iframeUrl ? (
-                <iframe
-                  className="media-video"
-                  src={iframeUrl}
-                  title={embed.title || 'Embedded video'}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
-                  allowFullScreen
-                />
-              ) : (
-                <div className="media-fallback">Unable to load media</div>
-              )}
-            </div>
-          );
-        }
-
-        if (type === 'pdf' && embed.url) {
-          return (
-            <div key={`${embed.url}-${index}`} className="media-embed-card">
-              <a className="media-link" href={embed.url} target="_blank" rel="noreferrer">
-                View PDF
-              </a>
-            </div>
-          );
-        }
-
-        return (
-          <div key={`${embed.url}-${index}`} className="media-embed-card">
-            <div className="media-fallback">Unable to load media</div>
-          </div>
-        );
-      })}
-    </div>
-  );
-}
 
 export default function ThreadDetail({ thread, onClose, onThreadUpdated }) {
   const [replies, setReplies] = useState([]);

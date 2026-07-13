@@ -23,8 +23,12 @@ export function getYoutubeEmbedUrl(url = '') {
 }
 
 export function getEmbedsFromRichContent(payload = {}) {
-  const richContent = payload?.richContent || payload?.rich_content || {};
-  const embeds = Array.isArray(richContent.embeds) ? richContent.embeds : [];
+  const richContent = payload?.richContent || payload?.rich_content || payload || {};
+  const embeds = Array.isArray(payload?.embeds)
+    ? payload.embeds
+    : Array.isArray(richContent?.embeds)
+      ? richContent.embeds
+      : [];
 
   return embeds.map((embed) => ({
     ...embed,

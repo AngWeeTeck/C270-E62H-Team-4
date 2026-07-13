@@ -2,6 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
+const { createStore } = require('../dataStore');
 const Reply = require('../models/Reply');
 const Thread = require('../models/Thread');
 
@@ -12,6 +13,16 @@ const resolveRichContent = (body = {}) => {
   if (body.richContent) return body.richContent;
   if (body.rich_content) return body.rich_content;
   return defaultRichContentTemplate(body.content || '');
+};
+
+const getMemoryStore = (req) => {
+  if (req.app.locals.dataStore) {
+    return req.app.locals.dataStore;
+  }
+
+  const store = createStore();
+  req.app.locals.dataStore = store;
+  return store;
 };
 
 const defaultRichContentTemplate = (text = '') => ({
@@ -70,6 +81,7 @@ router.post('/:threadId/replies', async (req, res) => {
         updatedAt: new Date().toISOString()
       };
 
+      getMemoryStore(req).addReply(reply);
       req.app.locals.memoryReplies.push(reply);
       thread.replies = Array.isArray(thread.replies) ? thread.replies : [];
       thread.replies.push(reply.id);
@@ -215,6 +227,7 @@ router.delete('/reply/:replyId', async (req, res) => {
     if (!isDbConnected()) {
       const thread = (req.app.locals.memoryThreads || []).find((candidate) => candidate.id === reply.threadId);
       if (thread) {
+        getMemoryStore(req).deleteReply(req.params.replyId);
         req.app.locals.memoryReplies = (req.app.locals.memoryReplies || []).filter((candidate) => candidate.id !== req.params.replyId);
         thread.replies = (thread.replies || []).filter((candidate) => candidate !== req.params.replyId);
         thread.reply_count = thread.replies.length;
