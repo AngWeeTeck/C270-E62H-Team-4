@@ -202,6 +202,51 @@ describe('ForumDisplay Component', () => {
     });
   });
 
+  describe('Voting System', () => {
+    test('should upvote a thread and toggle the same vote off', (done) => {
+      setTimeout(() => {
+        forum.renderThreadsList();
+        const thread = forum.threads[0];
+        const initialScore = Number(thread.score || 0);
+        const upvote = document.querySelector(
+          `.vote-controls[data-target-type="thread"][data-target-id="${thread.id}"] .vote-btn[data-vote-value="1"]`
+        );
+
+        upvote.click();
+
+        setTimeout(() => {
+          expect(thread.score).toBe(initialScore + 1);
+          expect(thread.userVote).toBe(1);
+
+          const toggledUpvote = document.querySelector(
+            `.vote-controls[data-target-type="thread"][data-target-id="${thread.id}"] .vote-btn[data-vote-value="1"]`
+          );
+          toggledUpvote.click();
+
+          setTimeout(() => {
+            expect(thread.score).toBe(initialScore);
+            expect(thread.userVote).toBe(0);
+            done();
+          }, 25);
+        }, 25);
+      }, 100);
+    });
+
+    test('should switch directly from an upvote to a downvote', (done) => {
+      setTimeout(async () => {
+        const thread = forum.threads[0];
+        const initialScore = Number(thread.score || 0);
+
+        await forum.submitVote('thread', thread.id, 1);
+        await forum.submitVote('thread', thread.id, -1);
+
+        expect(thread.score).toBe(initialScore - 1);
+        expect(thread.userVote).toBe(-1);
+        done();
+      }, 100);
+    });
+  });
+
   describe('Security', () => {
     test('should escape HTML in thread title', () => {
       const maliciousInput = '<script>alert("XSS")</script>';

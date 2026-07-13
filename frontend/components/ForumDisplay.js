@@ -398,6 +398,7 @@ class ForumDisplay {
     if (this.pendingVotes.has(pendingKey)) return;
 
     this.pendingVotes.add(pendingKey);
+    let voteUpdated = false;
 
     try {
       const response = this.useApi && typeof fetch !== 'undefined'
@@ -408,15 +409,19 @@ class ForumDisplay {
         : this.applyMockVote(targetType, targetId, voteValue);
 
       this.updateVoteState(targetType, targetId, response.score, response.userVote);
-      this.renderThreadsList();
-
-      if (this.selectedThreadId) {
-        this.showThreadDetail(this.selectedThreadId);
-      }
+      voteUpdated = true;
     } catch (error) {
       this.showError(error.message);
     } finally {
       this.pendingVotes.delete(pendingKey);
+
+      if (voteUpdated) {
+        this.renderThreadsList();
+
+        if (this.selectedThreadId) {
+          this.showThreadDetail(this.selectedThreadId);
+        }
+      }
     }
   }
 

@@ -20,7 +20,17 @@ const userSchema = new Schema({
   },
   passwordHash: {
     type: String,
-    required: true
+    default: null
+  },
+  passwordResetTokenHash: {
+    type: String,
+    default: null,
+    select: false
+  },
+  passwordResetExpiresAt: {
+    type: Date,
+    default: null,
+    select: false
   }
 }, { timestamps: true });
 
