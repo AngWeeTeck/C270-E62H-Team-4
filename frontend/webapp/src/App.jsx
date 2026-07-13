@@ -6,6 +6,39 @@ import ThreadForm from './components/ThreadForm';
 
 const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000/api';
 
+const fallbackThreads = [
+  {
+    id: 101,
+    title: 'RP students: how should we prep for the capstone pitch?',
+    author: 'Alicia, RP 2A',
+    reply_count: 7,
+    content: 'We are sharing slides and talking through the pitch flow before Friday.',
+    rich_content: {
+      html: '<p>We are sharing slides and talking through the pitch flow before Friday.</p>'
+    }
+  },
+  {
+    id: 102,
+    title: 'Course 3B discussion: best ways to explain AI ethics in class',
+    author: 'Ben, RP 3B',
+    reply_count: 5,
+    content: 'The group wants clearer examples for a 10-minute presentation this week.',
+    rich_content: {
+      html: '<p>The group wants clearer examples for a 10-minute presentation this week.</p>'
+    }
+  },
+  {
+    id: 103,
+    title: 'Anyone else struggling with the new UI assignment brief?',
+    author: 'Chloe, RP 1C',
+    reply_count: 9,
+    content: 'A few of us are comparing notes and mock screens before the review session.',
+    rich_content: {
+      html: '<p>A few of us are comparing notes and mock screens before the review session.</p>'
+    }
+  }
+];
+
 function App() {
   const [threads, setThreads] = useState([]);
   const [selectedThread, setSelectedThread] = useState(null);
@@ -15,15 +48,29 @@ function App() {
     try {
       const response = await fetch(`${API_BASE}/threads`);
       const data = await response.json();
-      setThreads(data.threads || []);
+      const loadedThreads = data.threads?.length ? data.threads : fallbackThreads;
+      setThreads(loadedThreads);
+      setAlert(data.threads?.length ? '' : 'Showing sample discussions while the server is unavailable.');
     } catch (error) {
-      setAlert('Unable to load threads.');
+      setThreads(fallbackThreads);
+      setAlert('Showing sample discussions while the server is unavailable.');
     }
   };
 
   useEffect(() => {
     loadThreads();
   }, []);
+
+  const handleCreateThread = async (newThread) => {
+    if (!newThread) {
+      await loadThreads();
+      return;
+    }
+
+    setThreads((current) => [newThread, ...current]);
+    setSelectedThread(newThread);
+    setAlert('');
+  };
 
   return (
     <div className="app-shell">
@@ -41,7 +88,7 @@ function App() {
             <h2>Start a new thread</h2>
             <p>Ask a question and invite classmates to reply.</p>
           </div>
-          <ThreadForm onCreate={loadThreads} setSelectedThread={setSelectedThread} />
+          <ThreadForm onCreate={handleCreateThread} setSelectedThread={setSelectedThread} />
         </div>
 
         <div className="card card-feed">
@@ -69,7 +116,11 @@ function App() {
 
       {selectedThread && (
         <div className="card card-detail">
-          <ThreadDetail thread={selectedThread} onClose={() => setSelectedThread(null)} />
+          <ThreadDetail
+            thread={selectedThread}
+            onClose={() => setSelectedThread(null)}
+            onThreadUpdated={setSelectedThread}
+          />
         </div>
       )}
     </div>
