@@ -88,13 +88,32 @@ function createStore({ filePath = path.join(__dirname, 'data', 'store.json') } =
     return true;
   };
 
+  const clearThreads = () => {
+    state.threads = [];
+    persist();
+    return true;
+  };
+
+  const clearReplies = () => {
+    state.replies = [];
+    state.threads.forEach((thread) => {
+      thread.replies = [];
+      thread.replyCount = 0;
+      thread.reply_count = 0;
+    });
+    persist();
+    return true;
+  };
+
   return {
     getThreads,
     getReplies,
     addThread,
     addReply,
     deleteThread,
-    deleteReply
+    deleteReply,
+    clearThreads,
+    clearReplies
   };
 }
 

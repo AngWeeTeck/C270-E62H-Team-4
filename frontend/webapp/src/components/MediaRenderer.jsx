@@ -1,6 +1,8 @@
 import { useState } from 'react';
 import { getEmbedsFromRichContent, getYoutubeEmbedUrl, inferEmbedType } from '../utils/mediaEmbeds';
 
+const API_BASE = import.meta.env.VITE_API_BASE || '/api';
+
 export default function MediaRenderer({ payload }) {
   const embeds = getEmbedsFromRichContent(payload || {});
   const [imageErrors, setImageErrors] = useState({});
@@ -51,8 +53,10 @@ export default function MediaRenderer({ payload }) {
                   className="media-video"
                   src={iframeUrl}
                   title={embed.title || 'Embedded video'}
-                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture"
+                  frameBorder="0"
+                  allow="accelerometer; autoplay; clipboard-write; encrypted-media; gyroscope; picture-in-picture; web-share"
                   allowFullScreen
+                  referrerPolicy="strict-origin-when-cross-origin"
                 />
               ) : (
                 <div className="media-fallback">Unable to load media</div>
@@ -63,18 +67,23 @@ export default function MediaRenderer({ payload }) {
 
         if (type === 'pdf' && embed.url) {
           const pdfUrl = (embed.url || '').trim();
+          const resolvedPdfUrl = pdfUrl.startsWith('http')
+            ? pdfUrl
+            : /^\//.test(pdfUrl)
+              ? `${API_BASE}`.replace(/\/api\/?$/, '') + pdfUrl
+              : pdfUrl;
+
           const handlePdfClick = (event) => {
             event.preventDefault();
             if (!pdfUrl) return;
-            const resolvedUrl = pdfUrl.startsWith('http') ? pdfUrl : `http://localhost:5000${pdfUrl}`;
-            window.open(resolvedUrl, '_blank', 'noopener,noreferrer');
+            window.open(resolvedPdfUrl, '_blank', 'noopener,noreferrer');
           };
 
           return (
             <div key={embedKey} className="media-embed-card">
               <a
                 className="media-link"
-                href={pdfUrl.startsWith('http') ? pdfUrl : `http://localhost:5000${pdfUrl}`}
+                href={resolvedPdfUrl}
                 target="_blank"
                 rel="noopener noreferrer"
                 onClick={handlePdfClick}

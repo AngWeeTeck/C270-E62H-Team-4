@@ -240,4 +240,25 @@ router.delete('/:threadId', async (req, res) => {
   }
 });
 
+// Clear all threads
+router.delete('/', async (req, res) => {
+  try {
+    if (!isDbConnected()) {
+      req.app.locals.memoryThreads = [];
+      req.app.locals.memoryReplies = [];
+      getMemoryStore(req).clearThreads();
+      getMemoryStore(req).clearReplies();
+      return res.json({ message: 'All threads cleared successfully' });
+    }
+
+    await Thread.deleteMany({});
+    const Reply = require('../models/Reply');
+    await Reply.deleteMany({});
+
+    res.json({ message: 'All threads cleared successfully' });
+  } catch (error) {
+    res.status(500).json({ error: error.message });
+  }
+});
+
 module.exports = router;

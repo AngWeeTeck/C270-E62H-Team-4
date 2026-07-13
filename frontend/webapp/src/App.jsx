@@ -10,6 +10,22 @@ function App() {
   const [threads, setThreads] = useState([]);
   const [selectedThread, setSelectedThread] = useState(null);
 
+  const clearAllThreads = async () => {
+    try {
+      const response = await fetch(`${API_BASE}/threads`, {
+        method: 'DELETE'
+      });
+      const data = await response.json();
+      console.log('✅ Threads cleared:', data.message);
+      setThreads([]);
+      setSelectedThread(null);
+      return data;
+    } catch (error) {
+      console.error('❌ Failed to clear threads:', error);
+      throw error;
+    }
+  };
+
   const loadThreads = async () => {
     try {
       const response = await fetch(`${API_BASE}/threads`);
@@ -26,6 +42,25 @@ function App() {
       setSelectedThread(null);
     }
   };
+
+  // Expose developer tools to window object
+  useEffect(() => {
+    window.devTools = {
+      clearThreads: clearAllThreads,
+      loadThreads,
+      threads: () => threads,
+      help: () => {
+        console.log(`
+🛠️  Developer Tools Available:
+  • window.devTools.clearThreads()  - Delete all discussion threads
+  • window.devTools.loadThreads()   - Reload threads from backend
+  • window.devTools.threads()       - View current threads in memory
+  • window.devTools.help()          - Show this help message
+        `);
+      }
+    };
+    window.devTools.help();
+  }, [threads]);
 
   useEffect(() => {
     loadThreads();
@@ -59,7 +94,6 @@ function App() {
           <p className="eyebrow">🎓 StudyQuest Community</p>
           <h1>Discuss questions, share knowledge, and learn together.</h1>
         </div>
-        <button className="pill-button">🎁 Claim Reward</button>
       </header>
 
       <section className="section-grid">
@@ -105,6 +139,28 @@ function App() {
           />
         </div>
       )}
+
+      <footer style={{ padding: '20px', textAlign: 'center', borderTop: '1px solid #e0e0e0', marginTop: '40px' }}>
+        <button 
+          onClick={clearAllThreads} 
+          title="Developer tool: Delete all discussion threads"
+          style={{
+            padding: '8px 16px',
+            backgroundColor: '#ff6b6b',
+            color: 'white',
+            border: 'none',
+            borderRadius: '20px',
+            cursor: 'pointer',
+            fontSize: '14px',
+            fontWeight: '500',
+            transition: 'background-color 0.2s'
+          }}
+          onMouseEnter={(e) => e.target.style.backgroundColor = '#ff5252'}
+          onMouseLeave={(e) => e.target.style.backgroundColor = '#ff6b6b'}
+        >
+          🗑️ Clear Threads (Dev Tool)
+        </button>
+      </footer>
     </div>
   );
 }

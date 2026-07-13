@@ -16,9 +16,18 @@ export function getYoutubeEmbedUrl(url = '') {
   const normalized = (url || '').trim();
   if (!normalized) return '';
 
-  const match = normalized.match(/[?&]v=([^&#]+)/) || normalized.match(/youtu\.be\/([^?#]+)/);
-  const videoId = match?.[1];
+  let videoId = null;
+  
+  // Try to extract video ID from various YouTube URL formats
+  const watchMatch = normalized.match(/[?&]v=([^&#]+)/);
+  const shortMatch = normalized.match(/youtu\.be\/([^?#]+)/);
+  const embedMatch = normalized.match(/embed\/([^?#]+)/);
+  
+  videoId = watchMatch?.[1] || shortMatch?.[1] || embedMatch?.[1];
+  
   if (!videoId) return '';
+  
+  // Use youtube.com with minimal parameters
   return `https://www.youtube.com/embed/${videoId}`;
 }
 

@@ -9,8 +9,17 @@ export function resolveUploadedUrl(url = '', apiBase = '') {
   }
 
   if (trimmedUrl.startsWith('/')) {
-    const baseUrl = apiBase?.replace(/\/api\/?$/, '') || 'http://localhost:5000';
-    return `${baseUrl}${trimmedUrl}`;
+    if (!apiBase) return trimmedUrl;
+
+    const normalizedApiBase = String(apiBase).trim();
+    if (!normalizedApiBase) return trimmedUrl;
+
+    if (/^https?:\/\//i.test(normalizedApiBase)) {
+      const baseUrl = normalizedApiBase.replace(/\/api\/?$/, '');
+      return `${baseUrl}${trimmedUrl}`;
+    }
+
+    return trimmedUrl;
   }
 
   return trimmedUrl;
