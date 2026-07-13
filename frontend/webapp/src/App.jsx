@@ -4,56 +4,26 @@ import ThreadCard from './components/ThreadCard';
 import ThreadDetail from './components/ThreadDetail';
 import ThreadForm from './components/ThreadForm';
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000/api';
-
-const fallbackThreads = [
-  {
-    id: 101,
-    title: 'RP students: how should we prep for the capstone pitch?',
-    author: 'Alicia, RP 2A',
-    reply_count: 7,
-    content: 'We are sharing slides and talking through the pitch flow before Friday.',
-    rich_content: {
-      html: '<p>We are sharing slides and talking through the pitch flow before Friday.</p>'
-    }
-  },
-  {
-    id: 102,
-    title: 'Course 3B discussion: best ways to explain AI ethics in class',
-    author: 'Ben, RP 3B',
-    reply_count: 5,
-    content: 'The group wants clearer examples for a 10-minute presentation this week.',
-    rich_content: {
-      html: '<p>The group wants clearer examples for a 10-minute presentation this week.</p>'
-    }
-  },
-  {
-    id: 103,
-    title: 'Anyone else struggling with the new UI assignment brief?',
-    author: 'Chloe, RP 1C',
-    reply_count: 9,
-    content: 'A few of us are comparing notes and mock screens before the review session.',
-    rich_content: {
-      html: '<p>A few of us are comparing notes and mock screens before the review session.</p>'
-    }
-  }
-];
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000/api';
 
 function App() {
   const [threads, setThreads] = useState([]);
   const [selectedThread, setSelectedThread] = useState(null);
-  const [alert, setAlert] = useState('');
 
   const loadThreads = async () => {
     try {
       const response = await fetch(`${API_BASE}/threads`);
+      if (!response.ok) {
+        throw new Error(`Threads request failed: ${response.status}`);
+      }
+
       const data = await response.json();
-      const loadedThreads = data.threads?.length ? data.threads : fallbackThreads;
+      const loadedThreads = Array.isArray(data.threads) ? data.threads : [];
       setThreads(loadedThreads);
-      setAlert(data.threads?.length ? '' : 'Showing sample discussions while the server is unavailable.');
     } catch (error) {
-      setThreads(fallbackThreads);
-      setAlert('Showing sample discussions while the server is unavailable.');
+      console.error('Failed to load discussion threads:', error);
+      setThreads([]);
+      setSelectedThread(null);
     }
   };
 
@@ -69,7 +39,17 @@ function App() {
 
     setThreads((current) => [newThread, ...current]);
     setSelectedThread(newThread);
-    setAlert('');
+  };
+
+  const handleThreadUpdated = (updater) => {
+    setThreads((currentThreads) => currentThreads.map((thread) => {
+      if (thread.id !== selectedThread?.id) {
+        return thread;
+      }
+
+      return updater(thread);
+    }));
+    setSelectedThread((currentThread) => updater(currentThread));
   };
 
   return (
@@ -100,17 +80,19 @@ function App() {
             <button className="icon-pill"><AiOutlineComment size={18} /> Feed</button>
           </div>
 
-          {alert && <div className="alert-card">{alert}</div>}
-
-          <div className="thread-grid">
-            {threads.map((thread) => (
-              <ThreadCard
-                key={thread.id}
-                thread={thread}
-                onClick={() => setSelectedThread(thread)}
-              />
-            ))}
-          </div>
+          {threads.length === 0 ? (
+            <p className="empty-state">No discussions available right now.</p>
+          ) : (
+            <div className="thread-grid">
+              {threads.map((thread) => (
+                <ThreadCard
+                  key={thread.id}
+                  thread={thread}
+                  onClick={() => setSelectedThread(thread)}
+                />
+              ))}
+            </div>
+          )}
         </div>
       </section>
 
@@ -119,7 +101,7 @@ function App() {
           <ThreadDetail
             thread={selectedThread}
             onClose={() => setSelectedThread(null)}
-            onThreadUpdated={setSelectedThread}
+            onThreadUpdated={handleThreadUpdated}
           />
         </div>
       )}

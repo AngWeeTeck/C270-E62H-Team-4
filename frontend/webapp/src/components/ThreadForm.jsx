@@ -2,7 +2,7 @@ import { useState } from 'react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000/api';
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000/api';
 
 const quillModules = {
   toolbar: [
@@ -83,7 +83,12 @@ export default function ThreadForm({ onCreate, setSelectedThread }) {
         body: JSON.stringify({
           title: title.trim(),
           content,
-          username,
+          author: username || 'student1',
+          username: username || 'student1',
+          richContent: {
+            html: content,
+            embeds
+          },
           rich_content: {
             html: content,
             embeds
@@ -123,16 +128,18 @@ export default function ThreadForm({ onCreate, setSelectedThread }) {
           placeholder="e.g. How to solve this math problem?"
         />
       </label>
-      <label>
+      <label className="content-editor-field">
         <span>Content</span>
-        <ReactQuill
-          value={content}
-          onChange={setContent}
-          modules={quillModules}
-          formats={quillFormats}
-          theme="snow"
-          placeholder="Share your question or idea..."
-        />
+        <div className="quill-shell">
+          <ReactQuill
+            value={content}
+            onChange={setContent}
+            modules={quillModules}
+            formats={quillFormats}
+            theme="snow"
+            placeholder="Share your question or idea..."
+          />
+        </div>
       </label>
       <div className="embed-panel">
         <div className="embed-heading">

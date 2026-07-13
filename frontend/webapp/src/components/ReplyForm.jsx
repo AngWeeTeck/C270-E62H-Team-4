@@ -2,7 +2,7 @@ import { useState } from 'react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 
-const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:8000/api';
+const API_BASE = import.meta.env.VITE_API_BASE || 'http://localhost:5000/api';
 
 const quillModules = {
   toolbar: [
@@ -79,7 +79,12 @@ export default function ReplyForm({ threadId, onReplyCreated }) {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           content,
-          username,
+          author: username || 'learner1',
+          username: username || 'learner1',
+          richContent: {
+            html: content,
+            embeds
+          },
           rich_content: {
             html: content,
             embeds
@@ -110,16 +115,21 @@ export default function ReplyForm({ threadId, onReplyCreated }) {
       <div className="reply-form-header">
         <p className="eyebrow">💬 Add your reply</p>
       </div>
-      <ReactQuill
-        value={content}
-        onChange={setContent}
-        modules={quillModules}
-        formats={quillFormats}
-        theme="snow"
-        placeholder="Write a helpful explanation or response..."
-      />
-      <label className="embed-row">
-        <span>Embed media</span>
+      <div className="reply-editor-shell">
+        <ReactQuill
+          value={content}
+          onChange={setContent}
+          modules={quillModules}
+          formats={quillFormats}
+          theme="snow"
+          placeholder="Write a helpful explanation or response..."
+        />
+      </div>
+      <div className="embed-panel reply-embed-panel">
+        <div className="embed-heading">
+          <span>Embed media</span>
+          <p>Share a YouTube link, PDF, or image URL.</p>
+        </div>
         <div className="embed-actions">
           <input
             className="embed-input"
@@ -129,7 +139,7 @@ export default function ReplyForm({ threadId, onReplyCreated }) {
           />
           <button type="button" className="small-pill" onClick={addEmbed}>➕ Embed</button>
         </div>
-      </label>
+      </div>
       {embeds.length > 0 && (
         <div className="embed-list">
           {embeds.map((embed, index) => (

@@ -150,13 +150,28 @@ textarea::placeholder {
   display: flex;
   justify-content: space-between;
   gap: 1rem;
-  align-items: center;
+  align-items: flex-start;
 }
 
-.thread-title {
-  margin: 0 0 0.5rem;
-  font-size: 1.1rem;
+.thread-card-content {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 0;
+  flex: 1;
+}
+
+.thread-card-title {
+  margin: 0;
+  font-size: 1.05rem;
   font-weight: 800;
+  line-height: 1.35;
+  color: #111827;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  text-align: left;
 }
 
 .thread-meta,
@@ -165,11 +180,17 @@ textarea::placeholder {
   margin: 0;
   color: #64748b;
   font-size: 0.92rem;
+  line-height: 1.4;
 }
 
 .thread-body {
-  margin: 0;
+  margin: 0.75rem 0 0;
   color: #334155;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
 }
 
 .thread-form label,
@@ -177,6 +198,10 @@ textarea::placeholder {
   display: grid;
   gap: 0.55rem;
   margin-bottom: 1rem;
+}
+
+.thread-form > label:last-of-type {
+  margin-bottom: 1.25rem;
 }
 
 .thread-form input,
@@ -206,19 +231,32 @@ textarea::placeholder {
   min-height: 130px;
 }
 
-.ql-toolbar.ql-snow {
-  border-radius: 1rem 1rem 0 0;
-  border-color: #e2e8f0;
+.thread-form .content-editor-field {
+  margin-bottom: 1.25rem;
+}
+
+.thread-form .quill-shell {
+  overflow: hidden;
+  border-radius: 1rem;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.thread-form .quill-shell .ql-toolbar.ql-snow {
+  border: none;
+  border-bottom: 1px solid #e2e8f0;
+  border-radius: 0;
   background: #f8fafc;
 }
 
-.ql-container.ql-snow {
-  border-radius: 0 0 1rem 1rem;
-  border-color: #e2e8f0;
+.thread-form .quill-shell .ql-container.ql-snow {
+  border: none;
+  border-radius: 0;
   min-height: 160px;
 }
 
-.ql-editor {
+.thread-form .quill-shell .ql-editor {
   min-height: 140px;
 }
 
@@ -342,6 +380,80 @@ textarea::placeholder {
   border: 1px solid rgba(167, 139, 250, 0.24);
 }
 
+.media-embed-list {
+  display: grid;
+  gap: 0.9rem;
+  margin-top: 1rem;
+}
+
+.media-embed-card {
+  border-radius: 1rem;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+}
+
+.media-image {
+  display: block;
+  width: 100%;
+  max-height: 320px;
+  object-fit: contain;
+  background: #f8fafc;
+}
+
+.media-video {
+  width: 100%;
+  min-height: 280px;
+  border: 0;
+  background: #0f172a;
+}
+
+.media-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.45rem;
+  padding: 0.95rem 1rem;
+  color: #2563eb;
+  font-weight: 700;
+  text-decoration: none;
+}
+
+.media-fallback {
+  padding: 1rem;
+  color: #64748b;
+  background: #f8fafc;
+}
+
+.reply-editor-shell {
+  overflow: hidden;
+  border-radius: 1rem;
+  border: 1px solid #e2e8f0;
+  background: #fff;
+  box-shadow: inset 0 1px 2px rgba(15, 23, 42, 0.04);
+}
+
+.reply-editor-shell .ql-toolbar.ql-snow {
+  border: none;
+  border-bottom: 1px solid #e2e8f0;
+  border-radius: 0;
+  background: #f8fafc;
+}
+
+.reply-editor-shell .ql-container.ql-snow {
+  border: none;
+  border-radius: 0;
+  min-height: 150px;
+}
+
+.reply-editor-shell .ql-editor {
+  min-height: 130px;
+}
+
+.reply-embed-panel {
+  margin-top: 0.25rem;
+  margin-bottom: 0;
+}
+
 .empty-state {
   margin: 0;
   padding: 1rem 0;
@@ -359,5 +471,25 @@ textarea::placeholder {
 @media (max-width: 1024px) {
   .section-grid {
     grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 640px) {
+  .reply-form {
+    padding: 1rem;
+  }
+
+  .reply-form .embed-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .reply-form .embed-heading {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .reply-form .small-pill {
+    width: 100%;
   }
 }

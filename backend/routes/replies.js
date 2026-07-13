@@ -1,8 +1,18 @@
 const express = require('express');
+const mongoose = require('mongoose');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
 const Reply = require('../models/Reply');
 const Thread = require('../models/Thread');
+
+const isDbConnected = () => mongoose.connection.readyState === 1;
+
+const resolveAuthor = (body = {}) => body.author || body.username || 'anonymous';
+const resolveRichContent = (body = {}) => {
+  if (body.richContent) return body.richContent;
+  if (body.rich_content) return body.rich_content;
+  return defaultRichContentTemplate(body.content || '');
+};
 
 const defaultRichContentTemplate = (text = '') => ({
   text,
@@ -14,17 +24,58 @@ const defaultRichContentTemplate = (text = '') => ({
   embeds: []
 });
 
+const serializeReply = (reply) => {
+  const replyObject = reply.toObject ? reply.toObject() : reply;
+  const richContent = replyObject.richContent || replyObject.rich_content || defaultRichContentTemplate(replyObject.content || '');
+
+  return {
+    ...replyObject,
+    author: replyObject.author || replyObject.username || 'anonymous',
+    richContent,
+    rich_content: richContent,
+    created_at: replyObject.created_at || replyObject.createdAt,
+    createdAt: replyObject.createdAt || replyObject.created_at
+  };
+};
+
 // Create reply to a thread
 router.post('/:threadId/replies', async (req, res) => {
   try {
     const { threadId } = req.params;
-    const { content, author, richContent } = req.body;
+    const { content } = req.body;
+    const author = resolveAuthor(req.body);
+    const richContent = resolveRichContent(req.body);
 
     // Validation
     if (!content || !author) {
       return res.status(400).json({
         error: 'Content and author are required'
       });
+    }
+
+    if (!isDbConnected()) {
+      const thread = (req.app.locals.memoryThreads || []).find((candidate) => candidate.id === threadId);
+      if (!thread) {
+        return res.status(404).json({ error: 'Thread not found' });
+      }
+
+      const reply = {
+        id: uuidv4(),
+        threadId,
+        content,
+        author,
+        richContent,
+        rich_content: richContent,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString()
+      };
+
+      req.app.locals.memoryReplies.push(reply);
+      thread.replies = Array.isArray(thread.replies) ? thread.replies : [];
+      thread.replies.push(reply.id);
+      thread.reply_count = (thread.reply_count || 0) + 1;
+      thread.replyCount = thread.reply_count;
+      return res.status(201).json(serializeReply(reply));
     }
 
     // Check if thread exists
@@ -38,17 +89,17 @@ router.post('/:threadId/replies', async (req, res) => {
       threadId,
       content,
       author,
-      richContent: richContent || defaultRichContentTemplate(content)
+      richContent
     });
 
     const savedReply = await reply.save();
 
     // Update thread's reply count and replies array
     thread.replies.push(savedReply._id);
-    thread.replyCount = thread.replies.length;
+    thread.replyCount = await Reply.countDocuments({ threadId });
     await thread.save();
 
-    res.status(201).json(savedReply);
+    res.status(201).json(serializeReply(savedReply));
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
@@ -61,6 +112,28 @@ router.get('/:threadId/replies', async (req, res) => {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 20;
     const skip = (page - 1) * limit;
+
+    if (!isDbConnected()) {
+      const thread = (req.app.locals.memoryThreads || []).find((candidate) => candidate.id === threadId);
+      if (!thread) {
+        return res.status(404).json({ error: 'Thread not found' });
+      }
+
+      const replies = (req.app.locals.memoryReplies || [])
+        .filter((candidate) => candidate.threadId === threadId)
+        .slice()
+        .sort((left, right) => new Date(left.createdAt) - new Date(right.createdAt));
+
+      return res.json({
+        replies: replies.slice(skip, skip + limit).map(serializeReply),
+        pagination: {
+          page,
+          limit,
+          total: replies.length,
+          pages: Math.ceil(replies.length / limit)
+        }
+      });
+    }
 
     // Check if thread exists
     const thread = await Thread.findOne({ id: threadId });
@@ -76,7 +149,7 @@ router.get('/:threadId/replies', async (req, res) => {
     const total = await Reply.countDocuments({ threadId });
 
     res.json({
-      replies,
+      replies: replies.map(serializeReply),
       pagination: {
         page,
         limit,
@@ -139,11 +212,22 @@ router.delete('/reply/:replyId', async (req, res) => {
       return res.status(404).json({ error: 'Reply not found' });
     }
 
+    if (!isDbConnected()) {
+      const thread = (req.app.locals.memoryThreads || []).find((candidate) => candidate.id === reply.threadId);
+      if (thread) {
+        req.app.locals.memoryReplies = (req.app.locals.memoryReplies || []).filter((candidate) => candidate.id !== req.params.replyId);
+        thread.replies = (thread.replies || []).filter((candidate) => candidate !== req.params.replyId);
+        thread.reply_count = thread.replies.length;
+        thread.replyCount = thread.reply_count;
+      }
+      return res.json({ message: 'Reply deleted successfully' });
+    }
+
     // Update thread's reply count
     const thread = await Thread.findOne({ id: reply.threadId });
     if (thread) {
       thread.replies = thread.replies.filter(r => r.toString() !== reply._id.toString());
-      thread.replyCount = thread.replies.length;
+      thread.replyCount = await Reply.countDocuments({ threadId: reply.threadId });
       await thread.save();
     }
 

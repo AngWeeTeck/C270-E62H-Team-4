@@ -9,14 +9,15 @@
     "preview": "vite preview"
   },
   "dependencies": {
+    "quill": "^2.0.0",
     "react": "^18.3.1",
     "react-dom": "^18.3.1",
     "react-icons": "^4.11.0",
-    "react-quill": "^2.0.0",
-    "quill": "^2.0.0"
+    "react-quill": "^2.0.0"
   },
   "devDependencies": {
     "@vitejs/plugin-react": "^4.4.0",
+    "playwright": "^1.61.1",
     "vite": "^5.4.1"
   }
 }
