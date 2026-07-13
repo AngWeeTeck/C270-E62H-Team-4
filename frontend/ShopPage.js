@@ -20,6 +20,12 @@ class ShopPage {
         cost: 80,
         icon: "✨",
         description: "Add a special badge beside your title"
+      },
+      {
+        name: "10% RP Food Voucher",
+        cost: 250,
+        icon: "🎟️",
+        description: "Enjoy 10% off at participating RP food stalls."
       }
     ];
   }

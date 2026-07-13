@@ -62,9 +62,29 @@ router.post('/:author/spend', (req, res) => {
     player.totalCoinsSpent =
       (player.totalCoinsSpent || 0) + Number(amount);
 
-    if (!player.ownedItems.includes(item)) {
-      player.ownedItems.push(item);
-    }
+    if (item.includes("Voucher")) {
+
+      player.vouchers = player.vouchers || [];
+
+      player.vouchers.push({
+          id: Date.now().toString(),
+
+          name: item,
+
+          description: "Enjoy 10% off at participating RP food stalls.",
+
+          discount: "10%",
+
+          redeemed: false
+      });
+
+    } else {
+
+      if (!player.ownedItems.includes(item)) {
+          player.ownedItems.push(item);
+      }
+
+}
 
     const unlockedAchievements = checkAchievements(player);
     player.lastUnlockedAchievements = unlockedAchievements;
@@ -96,45 +116,90 @@ router.post('/:author/apply', (req, res) => {
       });
     }
 
+    let removed = false;
+
     switch (item) {
 
       case "Blue Profile Theme":
-        player.appliedTheme = "blue";
-        break;
-
-      case "Gold Avatar Frame":
-        player.appliedFrame = "gold";
-        break;
-
-      case "Special Title Badge":
-        player.appliedBadge = "special";
+        if (player.appliedTheme === "blue") {
+          player.appliedTheme = "default";
+          removed = true;
+        } else {
+          player.appliedTheme = "blue";
+        }
         break;
 
       case "🌌 Galaxy Theme":
-        player.appliedTheme = "galaxy";
-        break;
-
-      case "🔥 Phoenix Frame":
-        player.appliedFrame = "phoenix";
-        break;
-
-      case "💎 Diamond Badge":
-        player.appliedBadge = "diamond";
+        if (player.appliedTheme === "galaxy") {
+          player.appliedTheme = "default";
+          removed = true;
+        } else {
+          player.appliedTheme = "galaxy";
+        }
         break;
 
       case "🌸 Sakura Theme":
-        player.appliedTheme = "sakura";
+        if (player.appliedTheme === "sakura") {
+          player.appliedTheme = "default";
+          removed = true;
+        } else {
+          player.appliedTheme = "sakura";
+        }
+        break;
+
+      case "Gold Avatar Frame":
+        if (player.appliedFrame === "gold") {
+          player.appliedFrame = "default";
+          removed = true;
+        } else {
+          player.appliedFrame = "gold";
+        }
+        break;
+
+      case "🔥 Phoenix Frame":
+        if (player.appliedFrame === "phoenix") {
+          player.appliedFrame = "default";
+          removed = true;
+        } else {
+          player.appliedFrame = "phoenix";
+        }
+        break;
+
+      case "Special Title Badge":
+        if (player.appliedBadge === "special") {
+          player.appliedBadge = "default";
+          removed = true;
+        } else {
+          player.appliedBadge = "special";
+        }
+        break;
+
+      case "💎 Diamond Badge":
+        if (player.appliedBadge === "diamond") {
+          player.appliedBadge = "default";
+          removed = true;
+        } else {
+          player.appliedBadge = "diamond";
+        }
         break;
 
       case "👑 Crown Badge":
-        player.appliedBadge = "crown";
+        if (player.appliedBadge === "crown") {
+          player.appliedBadge = "default";
+          removed = true;
+        } else {
+          player.appliedBadge = "crown";
+        }
         break;
     }
 
     PlayerStats.savePlayer(player);
 
     res.json({
-      message: `${item} applied`,
+      message: removed
+        ? `${item} removed`
+        : `${item} applied`,
+      action: removed ? "removed" : "applied",
       stats: player
     });
 

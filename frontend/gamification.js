@@ -150,7 +150,12 @@ async function applyItem(item) {
 
     currentPlayer = result.stats;
     renderAll();
-    showToast(`${item} applied!`);
+
+    showToast(
+      result.action === "removed"
+        ? `${item} removed!`
+        : `${item} applied!`
+    );
   } catch (error) {
     showToast("Unable to apply item.", "error");
   }
@@ -227,7 +232,7 @@ function showAchievementPopups(achievements) {
 
         <div class="achievement-reward">
           <span>Bonus Reward</span>
-          <strong>💰 +${achievement.reward} Coins</strong>
+          ${achievement.rewardType === "voucher"?`<strong>🎟 Voucher Unlocked</strong>`:`<strong>💰 +${achievement.reward} Coins</strong>`}
 
           ${
             achievement.cosmeticReward

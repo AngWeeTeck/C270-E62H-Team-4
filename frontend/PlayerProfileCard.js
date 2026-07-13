@@ -66,6 +66,26 @@ class PlayerProfileCard {
             ${items.map(item => {
               const isExclusive = exclusiveItems.includes(item);
 
+              const isApplied =
+                item.includes("Theme")
+                  ? (
+                      (item === "Blue Profile Theme" && player.appliedTheme === "blue") ||
+                      (item === "🌌 Galaxy Theme" && player.appliedTheme === "galaxy") ||
+                      (item === "🌸 Sakura Theme" && player.appliedTheme === "sakura")
+                    )
+                  : item.includes("Frame")
+                  ? (
+                      (item === "Gold Avatar Frame" && player.appliedFrame === "gold") ||
+                      (item === "🔥 Phoenix Frame" && player.appliedFrame === "phoenix")
+                    )
+                  : item.includes("Badge")
+                  ? (
+                      (item === "Special Title Badge" && player.appliedBadge === "special") ||
+                      (item === "💎 Diamond Badge" && player.appliedBadge === "diamond") ||
+                      (item === "👑 Crown Badge" && player.appliedBadge === "crown")
+                    )
+                  : false;
+
               return `
                 <div class="inventory-item">
                   <span>
@@ -73,8 +93,8 @@ class PlayerProfileCard {
                     ${isExclusive ? `<span class="exclusive-star">⭐</span>` : ""}
                   </span>
 
-                  <button class="apply-btn" data-item="${item}">
-                    Apply
+                  <button class="apply-btn ${isApplied ? "remove-btn" : ""}"data-item="${item}">
+                    ${isApplied ? "Remove" : "Apply"}
                   </button>
                 </div>
               `;
@@ -153,14 +173,22 @@ const achievementCatalog = [
     id: "community_helper",
     name: "🤝 Community Helper",
     rarity: "EPIC",
-    reward: 100,
+
+    rewardType: "voucher",
+
+    voucherReward: {
+      name: "5% RP Food Voucher",
+      description: "Enjoy 5% off at participating RP food stalls.",
+      discount: "5%"
+    },
+
     description: "Help 10 students.",
     progressText: `${player.studentsHelped || 0} / 10 Students`,
     progressPercent: Math.min(
       ((player.studentsHelped || 0) / 10) * 100,
       100
     )
-}
+  }
 ];
 
 const unlockedCount = (player.achievements || []).length;
@@ -197,7 +225,9 @@ const achievements = achievementCatalog.map(achievement => {
         <div class="achievement-divider"></div>
 
         <p class="achievement-reward-line">
-          Reward: 💰 ${achievement.reward} Coins
+
+        ${achievement.rewardType === "voucher"?`Reward: 🎟 ${achievement.voucherReward.name}`:`Reward: 💰 ${achievement.reward} Coins`}
+
         </p>
 
         <div class="achievement-progress-row">
