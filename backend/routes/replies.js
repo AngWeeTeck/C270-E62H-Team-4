@@ -4,6 +4,16 @@ const { v4: uuidv4 } = require('uuid');
 const Reply = require('../models/Reply');
 const Thread = require('../models/Thread');
 
+const defaultRichContentTemplate = (text = '') => ({
+  text,
+  formatting: {
+    bold: [],
+    italic: [],
+    codeBlocks: []
+  },
+  embeds: []
+});
+
 // Create reply to a thread
 router.post('/:threadId/replies', async (req, res) => {
   try {
@@ -28,7 +38,7 @@ router.post('/:threadId/replies', async (req, res) => {
       threadId,
       content,
       author,
-      richContent: richContent || null
+      richContent: richContent || defaultRichContentTemplate(content)
     });
 
     const savedReply = await reply.save();
@@ -98,16 +108,21 @@ router.get('/reply/:replyId', async (req, res) => {
 router.put('/reply/:replyId', async (req, res) => {
   try {
     const { content, richContent } = req.body;
+    const existingReply = await Reply.findOne({ id: req.params.replyId });
+
+    if (!existingReply) {
+      return res.status(404).json({ error: 'Reply not found' });
+    }
 
     const reply = await Reply.findOneAndUpdate(
       { id: req.params.replyId },
-      { content, richContent, updatedAt: new Date() },
+      {
+        content: content !== undefined ? content : existingReply.content,
+        richContent: richContent !== undefined ? richContent : existingReply.richContent,
+        updatedAt: new Date()
+      },
       { new: true }
     );
-
-    if (!reply) {
-      return res.status(404).json({ error: 'Reply not found' });
-    }
 
     res.json(reply);
   } catch (error) {

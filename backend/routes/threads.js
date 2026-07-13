@@ -61,7 +61,10 @@ router.get('/', async (req, res) => {
 // Get single thread with replies
 router.get('/:threadId', async (req, res) => {
   try {
-    const thread = await Thread.findOne({ id: req.params.threadId });
+    const thread = await Thread.findOne({ id: req.params.threadId }).populate({
+      path: 'replies',
+      select: '-__v'
+    });
 
     if (!thread) {
       return res.status(404).json({ error: 'Thread not found' });
