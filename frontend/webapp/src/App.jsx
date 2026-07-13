@@ -3,12 +3,21 @@ import { AiOutlineComment } from 'react-icons/ai';
 import ThreadCard from './components/ThreadCard';
 import ThreadDetail from './components/ThreadDetail';
 import ThreadForm from './components/ThreadForm';
+import { loadForumState, saveForumState } from './utils/forumPersistence';
 
 const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 
 function App() {
-  const [threads, setThreads] = useState([]);
-  const [selectedThread, setSelectedThread] = useState(null);
+  const initialForumState = loadForumState();
+  const [threads, setThreads] = useState(initialForumState.threads);
+  const [selectedThread, setSelectedThread] = useState(() => {
+    const restored = loadForumState();
+    return restored.threads.find((thread) => thread.id === restored.selectedThreadId) || null;
+  });
+
+  useEffect(() => {
+    saveForumState(threads, selectedThread?.id ?? null);
+  }, [threads, selectedThread]);
 
   const clearAllThreads = async () => {
     try {
@@ -17,8 +26,34 @@ function App() {
       });
       const data = await response.json();
       console.log('✅ Threads cleared:', data.message);
-      setThreads([]);
-      setSelectedThread(null);
+      // verify server now returns no threads
+      try {
+        const verify = await fetch(`${API_BASE}/threads`);
+        if (verify.ok) {
+          const verifyData = await verify.json();
+          const serverThreads = Array.isArray(verifyData.threads) ? verifyData.threads : [];
+          if (serverThreads.length === 0) {
+            setThreads([]);
+            setSelectedThread(null);
+            try {
+              saveForumState([], null);
+              if (typeof window !== 'undefined' && window.localStorage) {
+                window.localStorage.removeItem('studyquest-forum-state');
+              }
+            } catch (err) {
+              console.warn('Failed to clear persisted forum state', err);
+            }
+          } else {
+            console.warn('Server still returned threads after delete; not clearing local state');
+            // refresh local state from server
+            setThreads(serverThreads);
+            setSelectedThread(null);
+          }
+        }
+      } catch (err) {
+        console.warn('Failed to verify server threads after delete', err);
+      }
+
       return data;
     } catch (error) {
       console.error('❌ Failed to clear threads:', error);
@@ -36,10 +71,19 @@ function App() {
       const data = await response.json();
       const loadedThreads = Array.isArray(data.threads) ? data.threads : [];
       setThreads(loadedThreads);
+      // persist authoritative server state so localStorage won't rehydrate deleted threads
+      try {
+        saveForumState(loadedThreads, null);
+      } catch (err) {
+        console.warn('Failed to save forum state after loading from server', err);
+      }
     } catch (error) {
       console.error('Failed to load discussion threads:', error);
-      setThreads([]);
-      setSelectedThread(null);
+      // If server is unreachable, fall back to stored state in localStorage (do not overwrite it)
+      const restored = loadForumState();
+      setThreads(restored.threads || []);
+      const restoredSelection = restored.threads.find((t) => t.id === restored.selectedThreadId) || null;
+      setSelectedThread(restoredSelection);
     }
   };
 
@@ -63,6 +107,9 @@ function App() {
   }, [threads]);
 
   useEffect(() => {
+    // Always try to fetch authoritative state from the server on startup.
+    // If the server responds, its state overrides localStorage (so deletes are permanent).
+    // If the server is unreachable, fall back to the saved local state.
     loadThreads();
   }, []);
 

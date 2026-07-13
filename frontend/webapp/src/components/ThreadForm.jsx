@@ -33,11 +33,40 @@ export default function ThreadForm({ onCreate, setSelectedThread }) {
     return 'link';
   };
 
-  const addEmbed = () => {
+  const isImageUrl = (url) => new Promise((resolve) => {
+    try {
+      const img = new Image();
+      img.onload = () => resolve(true);
+      img.onerror = () => resolve(false);
+      img.src = url;
+      // In case browser already cached/loaded
+      if (img.complete) {
+        resolve(true);
+      }
+    } catch (e) {
+      resolve(false);
+    }
+  });
+
+  const addEmbed = async () => {
     if (!embedUrl) return;
 
     const normalizedUrl = embedUrl.trim();
-    const embedType = determineEmbedType(normalizedUrl);
+    let embedType = determineEmbedType(normalizedUrl);
+
+    if (embedType === 'link') {
+      // try to detect if it's actually an image by attempting to load it
+      setStatus('Checking link to see if it is an image...');
+      // if it's youtube-ish later we'll treat as youtube
+      const looksLikeYoutube = /youtube\.com|youtu\.be/.test(normalizedUrl.toLowerCase());
+      if (looksLikeYoutube) {
+        embedType = 'youtube';
+      } else {
+        const isImage = await isImageUrl(normalizedUrl);
+        if (isImage) embedType = 'image';
+      }
+    }
+
     if (embedType === 'link') {
       setStatus('Paste a YouTube or image URL here. For PDFs, please use Upload a file instead.');
       return;
@@ -48,6 +77,7 @@ export default function ThreadForm({ onCreate, setSelectedThread }) {
       { type: embedType, url: normalizedUrl, title: '' }
     ]);
     setEmbedUrl('');
+    setStatus('');
   };
 
   const uploadMedia = async (file) => {
@@ -64,8 +94,27 @@ export default function ThreadForm({ onCreate, setSelectedThread }) {
         method: 'POST',
         body: formData
       });
-      const data = await response.json();
-      if (!response.ok) throw new Error(data.detail || 'Upload failed');
+      let data = {};
+      const contentType = response.headers.get('content-type') || '';
+      if (contentType.includes('application/json')) {
+        try {
+          data = await response.json();
+        } catch (err) {
+          data = {};
+        }
+      } else {
+        // fallback: try to parse text body (some servers return plain path)
+        const text = await response.text();
+        try {
+          data = text ? JSON.parse(text) : {};
+        } catch (err) {
+          data = text ? { url: text } : {};
+        }
+      }
+
+      if (!response.ok) {
+        throw new Error((data && (data.detail || data.error)) || 'Upload failed');
+      }
 
       const hostedUrl = resolveUploadedUrl(data.url, `${API_BASE}`);
       const fileType = file.type.includes('pdf') ? 'pdf' : file.type.startsWith('image/') ? 'image' : 'link';
