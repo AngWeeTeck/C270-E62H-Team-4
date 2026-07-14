@@ -42,6 +42,13 @@
     }
 
     const data = await response.json().catch(() => ({}));
+    
+    // If we get a 401, clear the invalid session
+    if (response.status === 401) {
+      clearSession();
+      throw new Error('Your session has expired. Please log in again.');
+    }
+    
     if (!response.ok) throw new Error(data.error || 'The request could not be completed.');
     return data;
   }
@@ -80,6 +87,11 @@
     mode = nextMode;
     const registering = mode === 'register';
     const resetting = mode === 'reset';
+    
+    // Reset form and clear messages when switching modes
+    authForm.reset();
+    clearMessage();
+    
     document.querySelector('#auth-view .eyebrow').textContent = resetting ? 'Secure your account' : registering ? 'Join the community' : 'Welcome back';
     document.getElementById('form-title').textContent = resetting ? 'Reset password' : registering ? 'Create account' : 'Log in';
     document.getElementById('form-intro').textContent = resetting
@@ -99,7 +111,6 @@
     emailInput.required = !resetting;
     confirmPasswordInput.required = registering || resetting;
     passwordInput.autocomplete = registering || resetting ? 'new-password' : 'current-password';
-    clearMessage();
   }
 
   function leaveResetMode() {
@@ -205,6 +216,10 @@
       window.setTimeout(() => showUser(data.user), 350);
     } catch (error) {
       showMessage(error.message);
+      // If we get auth errors, always clear the session to prepare for account switch
+      if (error.message.includes('session') || error.message.includes('expired')) {
+        clearSession();
+      }
     } finally {
       submitButton.disabled = false;
       submitButton.textContent = mode === 'reset' ? 'Save new password' : mode === 'register' ? 'Create account' : 'Log in';
@@ -281,6 +296,23 @@
   modal.addEventListener('click', (event) => { if (event.target === modal) closeModal(); });
   document.addEventListener('keydown', (event) => { if (event.key === 'Escape' && modal.classList.contains('open')) closeModal(); });
 
+  // Listen for storage changes (account switch in another tab)
+  window.addEventListener('storage', (event) => {
+    if (event.key === TOKEN_KEY || event.key === USER_KEY) {
+      // Session changed in another tab - refresh current view
+      if (!localStorage.getItem(TOKEN_KEY) && !localStorage.getItem(USER_KEY)) {
+        // Session cleared - show login form
+        showLogin();
+        showMessage('You have been logged out.', 'info');
+      } else if (event.newValue === null) {
+        // Token/user was cleared - logout locally
+        clearSession();
+        showLogin();
+        showMessage('Session ended. Please log in again.', 'info');
+      }
+    }
+  });
+
   async function restoreSession() {
     const token = localStorage.getItem(TOKEN_KEY);
     const savedUser = getSavedUser();
@@ -297,17 +329,23 @@
       emailInput.value = savedEmail;
       rememberInput.checked = true;
     }
+
+    // If no token/user, stay on login
     if (!token || !savedUser) return;
 
-    showUser(savedUser);
+    // Validate token with backend before showing user view
     try {
+      showUser(savedUser);
       const data = await apiRequest('/auth/me');
       localStorage.setItem(USER_KEY, JSON.stringify(data.user));
       showUser(data.user);
     } catch (error) {
+      // Token invalid or expired - clear and show login
       clearSession();
       showLogin();
-      showMessage('Your session expired. Please log in again.');
+      if (!error.message.includes('session')) {
+        showMessage('Your session expired. Please log in again.', 'info');
+      }
     }
   }
 
