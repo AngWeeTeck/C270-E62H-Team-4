@@ -6,7 +6,39 @@ body {
   color: #e6edf3;
   padding: 2rem;
 }
-
+.navbar {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  max-width: 900px;
+  margin: 0 auto 2rem;
+  padding: 0.75rem 1rem;
+  background: #161b22;
+  border: 1px solid #30363d;
+  border-radius: 12px;
+  flex-wrap: wrap;
+}
+.navbar .brand {
+  font-weight: 700;
+  margin-right: auto;
+  color: #e6edf3;
+  text-decoration: none;
+}
+.navbar a.nav-link {
+  padding: 0.45rem 0.85rem;
+  border-radius: 8px;
+  color: #8b949e;
+  text-decoration: none;
+  font-size: 0.85rem;
+  transition: background 0.2s, color 0.2s;
+}
+.navbar a.nav-link:hover { background: #21262d; color: #e6edf3; }
+.navbar a.nav-link.active { background: #21262d; color: #58a6ff; }
+.navbar a.logout {
+  color: #f85149;
+  border: 1px solid #30363d;
+}
+.navbar a.logout:hover { background: #21262d; color: #ff7b72; }
 .page-header { text-align: center; margin-bottom: 2rem; }
 .page-header h1 { font-size: 2rem; }
 .subtitle { color: #8b949e; font-size: 0.95rem; }
