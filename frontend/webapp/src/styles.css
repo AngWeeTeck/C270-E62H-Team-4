@@ -191,6 +191,20 @@ textarea::placeholder {
   display: -webkit-box;
   -webkit-line-clamp: 2;
   -webkit-box-orient: vertical;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.thread-body p {
+  margin: 0;
+}
+
+.thread-body strong {
+  font-weight: 700;
+}
+
+.thread-body em {
+  font-style: italic;
 }
 
 .thread-form label,
@@ -367,6 +381,69 @@ textarea::placeholder {
   border-bottom: 1px solid #f1f5f9;
 }
 
+.thread-content {
+  font-size: 1.05rem;
+  line-height: 1.7;
+  color: #1f2937;
+  letter-spacing: 0.3px;
+}
+
+.thread-content p {
+  margin: 1rem 0;
+}
+
+.thread-content strong {
+  font-weight: 700;
+  color: #111827;
+}
+
+.thread-content em {
+  font-style: italic;
+  color: #374151;
+}
+
+.thread-content h1,
+.thread-content h2,
+.thread-content h3,
+.thread-content h4,
+.thread-content h5,
+.thread-content h6 {
+  margin: 1.5rem 0 0.75rem;
+  font-weight: 700;
+  color: #111827;
+}
+
+.thread-content h1 { font-size: 1.5rem; }
+.thread-content h2 { font-size: 1.35rem; }
+.thread-content h3 { font-size: 1.25rem; }
+
+.thread-content ul,
+.thread-content ol {
+  margin: 1rem 0;
+  padding-left: 1.5rem;
+}
+
+.thread-content li {
+  margin: 0.5rem 0;
+}
+
+.thread-content blockquote {
+  margin: 1rem 0;
+  padding-left: 1rem;
+  border-left: 3px solid #60a5fa;
+  color: #475569;
+  font-style: italic;
+}
+
+.thread-content code {
+  background: #f8fafc;
+  padding: 0.25rem 0.5rem;
+  border-radius: 0.25rem;
+  font-family: 'Monaco', 'Menlo', monospace;
+  font-size: 0.95rem;
+  color: #dc2626;
+}
+
 .thread-detail-replies {
   display: grid;
   gap: 1rem;
@@ -378,6 +455,12 @@ textarea::placeholder {
   background: #fff;
   border: 1px solid rgba(148, 163, 184, 0.15);
   box-shadow: 0 12px 28px rgba(15, 23, 42, 0.06);
+}
+
+.reply-card .thread-content {
+  font-size: 1rem;
+  line-height: 1.6;
+  color: #374151;
 }
 
 .reply-header {
