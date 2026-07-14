@@ -23,12 +23,14 @@ const resolveRichContent = (body = {}) => {
 };
 
 const getMemoryStore = (req) => {
-  if (req.app.locals.dataStore) {
-    return req.app.locals.dataStore;
+  const existingStore = req.app.locals.dataStore || req.app.locals.store;
+  if (existingStore) {
+    return existingStore;
   }
 
   const store = createStore();
   req.app.locals.dataStore = store;
+  req.app.locals.store = store;
   return store;
 };
 
@@ -83,8 +85,10 @@ router.post('/', async (req, res) => {
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
       };
-      getMemoryStore(req).addThread(thread);
-      req.app.locals.memoryThreads.push(thread);
+      const store = getMemoryStore(req);
+      store.addThread(thread);
+      req.app.locals.memoryThreads = store.getThreads();
+      req.app.locals.memoryReplies = store.getReplies();
       return res.status(201).json(await serializeThread(thread));
     }
 

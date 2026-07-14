@@ -10,12 +10,14 @@ const getVoterId = (req) => {
 const isDbConnected = () => require('mongoose').connection.readyState === 1;
 
 const getMemoryStore = (req) => {
-  if (req.app.locals.dataStore) {
-    return req.app.locals.dataStore;
+  const existingStore = req.app.locals.dataStore || req.app.locals.store;
+  if (existingStore) {
+    return existingStore;
   }
 
   const store = createStore();
   req.app.locals.dataStore = store;
+  req.app.locals.store = store;
   return store;
 };
 

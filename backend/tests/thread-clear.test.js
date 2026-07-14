@@ -26,4 +26,22 @@ describe('thread clearing', () => {
     const afterClear = await request(app).get('/api/threads');
     expect(afterClear.body.threads).toHaveLength(0);
   });
+
+  it('keeps the shared server store in sync with thread creation and clearing', async () => {
+    const createResponse = await request(app)
+      .post('/api/threads')
+      .send({
+        title: 'Shared store thread',
+        content: 'This should be visible in the shared store.',
+        author: 'tester'
+      });
+
+    expect(createResponse.status).toBe(201);
+    expect(store.getThreads()).toHaveLength(1);
+    expect(store.getThreads()[0].id).toBe(createResponse.body.id);
+
+    const clearResponse = await request(app).delete('/api/threads');
+    expect(clearResponse.status).toBe(200);
+    expect(store.getThreads()).toHaveLength(0);
+  });
 });
