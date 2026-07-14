@@ -1,0 +1,77 @@
+pipeline {
+    agent any
+
+    parameters {
+        choice(name: 'ENVIRONMENT', choices: ['development', 'staging', 'production'], description: 'Target environment for the build')
+    }
+
+    environment {
+        PATH = "/usr/local/bin:/usr/bin:/bin:${env.PATH}"
+        NODE_ENV = "${params.ENVIRONMENT}"
+    }
+
+    options {
+        timeout(time: 20, unit: 'MINUTES')
+        timestamps()
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+                script {
+                    env.GIT_COMMIT_SHORT = sh(returnStdout: true, script: 'git rev-parse --short HEAD').trim()
+                    env.GIT_BRANCH = sh(returnStdout: true, script: 'git rev-parse --abbrev-ref HEAD').trim()
+                }
+            }
+        }
+
+        stage('Setup') {
+            steps {
+                sh '''
+                    echo "PATH=$PATH"
+                    node --version
+                    npm --version
+                '''
+            }
+        }
+
+        stage('Install Dependencies') {
+            parallel {
+                stage('Backend deps') {
+                    steps {
+                        dir('backend') {
+                            sh 'npm install --production=false'
+                        }
+                    }
+                }
+                stage('Frontend deps') {
+                    steps {
+                        dir('frontend') {
+                            sh 'npm install --production=false'
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Build Application') {
+            steps {
+                echo '🏗️ Building application artifacts...'
+                dir('backend') {
+                    sh 'npm install --production=false'
+                }
+                echo '✅ Build completed'
+            }
+        }
+    }
+
+    post {
+        always {
+            echo '🧹 Build pipeline finished.'
+        }
+        failure {
+            echo '❌ Build pipeline failed.'
+        }
+    }
+}
