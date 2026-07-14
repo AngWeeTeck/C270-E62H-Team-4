@@ -7,12 +7,20 @@ const NotificationDisplay = () => {
 
   // Hardcoded for testing on your branch—this will automatically hook into 
   // the shared global login system once the project is fully merged!
+<<<<<<< HEAD
   const currentUser = "Faris"; 
+=======
+  const currentUser = "User 3"; 
+>>>>>>> 61fc4fa (Transfer Faris demo notification/social changes to Faris-Clean)
 
   useEffect(() => {
     const fetchNotifications = async () => {
       try {
+<<<<<<< HEAD
         // Hits your brand new backend route: /api/notifications/Faris
+=======
+        // Hits your backend route for the selected user
+>>>>>>> 61fc4fa (Transfer Faris demo notification/social changes to Faris-Clean)
         const response = await fetch(`/api/notifications/${currentUser}`);
         
         if (!response.ok) {
