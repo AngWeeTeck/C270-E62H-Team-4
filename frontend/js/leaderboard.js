@@ -1,4 +1,4 @@
-const API_BASE = 'https://musical-space-adventure-qvpp757xr96cg7q-5000.app.github.dev/api/leaderboard';
+const API_BASE = 'http://localhost:5000/api/leaderboard';
 
 async function loadLeaderboard() {
   const board = document.getElementById('board');
