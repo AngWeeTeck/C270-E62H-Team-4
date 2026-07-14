@@ -41,6 +41,9 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 app.use('/uploads', express.static(path.join(__dirname, 'uploads')));
 
+// Pretty-print JSON responses
+app.set('json spaces', 2);
+
 // Routes
 app.use('/api/threads', (req, res, next) => {
   req.app.locals.memoryThreads = getMemoryThreads();
