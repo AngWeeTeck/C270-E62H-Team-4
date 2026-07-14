@@ -1,4 +1,4 @@
-const API_BASE = 'http://localhost:5000/api/leaderboard';
+const API_BASE = '/api/leaderboard';
 
 async function loadLeaderboard() {
   const board = document.getElementById('board');
