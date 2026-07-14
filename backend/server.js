@@ -61,6 +61,7 @@ app.use('/api/threads', (req, res, next) => {
   req.app.locals.updateThreadReplyCount = updateThreadReplyCount;
   next();
 }, require('./routes/replies'));
+app.use('/api/votes', require('./routes/votes').router);
 app.use('/api', require('./routes/uploads'));
 
 // Root and health check

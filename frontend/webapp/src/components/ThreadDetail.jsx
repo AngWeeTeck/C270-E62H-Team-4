@@ -3,6 +3,7 @@ import { AiOutlineClose } from 'react-icons/ai';
 import ReplyForm from './ReplyForm';
 import MediaRenderer from './MediaRenderer';
 import { resolveReplyCount } from '../utils/replyCount';
+import { formatVoteScore, getVoterId } from '../utils/voteHelpers';
 
 const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 
@@ -12,7 +13,11 @@ export default function ThreadDetail({ thread, onClose, onThreadUpdated }) {
 
   const loadReplies = async () => {
     try {
-      const response = await fetch(`${API_BASE}/threads/${thread.id}/replies`);
+      const response = await fetch(`${API_BASE}/threads/${thread.id}/replies`, {
+        headers: {
+          'x-voter-id': getVoterId()
+        }
+      });
       if (!response.ok) {
         throw new Error(`Replies request failed: ${response.status}`);
       }
@@ -50,17 +55,72 @@ export default function ThreadDetail({ thread, onClose, onThreadUpdated }) {
     ));
   };
 
+  const score = formatVoteScore(thread.score);
+  const userVote = thread.userVote ?? 0;
+
+  const voteOnTarget = async (targetType, targetId, value) => {
+    try {
+      const response = await fetch(`${API_BASE}/votes/${targetType}/${targetId}/vote`, {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'x-voter-id': getVoterId()
+        },
+        body: JSON.stringify({ voteValue: value })
+      });
+      if (!response.ok) {
+        throw new Error(`Vote request failed: ${response.status}`);
+      }
+      const summary = await response.json();
+      if (targetType === 'thread') {
+        onThreadUpdated?.((currentThread) => currentThread ? { ...currentThread, score: summary.score, userVote: summary.userVote } : currentThread);
+      } else {
+        setReplies((currentReplies) => currentReplies.map((reply) => {
+          if (reply.id !== targetId) return reply;
+          return { ...reply, score: summary.score, userVote: summary.userVote };
+        }));
+      }
+    } catch (error) {
+      console.error('Failed to submit vote:', error);
+    }
+  };
+
+  const renderVoteButtons = (targetType, targetId, currentVote) => (
+    <div className="vote-actions">
+      <button
+        type="button"
+        className={currentVote === 1 ? 'vote-button active' : 'vote-button'}
+        onClick={() => voteOnTarget(targetType, targetId, currentVote === 1 ? 0 : 1)}
+      >
+        ▲
+      </button>
+      <button
+        type="button"
+        className={currentVote === -1 ? 'vote-button active' : 'vote-button'}
+        onClick={() => voteOnTarget(targetType, targetId, currentVote === -1 ? 0 : -1)}
+      >
+        ▼
+      </button>
+    </div>
+  );
+
   return (
     <div className="thread-detail-card">
       <div className="thread-detail-header">
         <div>
           <p className="eyebrow">🧠 Thread details</p>
           <h2>{thread.title}</h2>
-          <p className="thread-meta">{thread.author} • {replyCount} replies</p>
+          <p className="thread-meta">{thread.author} • {replyCount} replies • {score} votes</p>
         </div>
         <button className="icon-pill" onClick={onClose}><AiOutlineClose /> Close</button>
       </div>
       <div className="thread-detail-body">
+        <div className="thread-vote-bar">
+          {renderVoteButtons('thread', thread.id, userVote)}
+          <div className="thread-vote-summary">
+            <strong>{score}</strong> votes
+          </div>
+        </div>
         <div
           className="thread-content"
           dangerouslySetInnerHTML={{ __html: thread.rich_content?.html || thread.content || '' }}
@@ -77,6 +137,13 @@ export default function ThreadDetail({ thread, onClose, onThreadUpdated }) {
               <div className="reply-header">
                 <p className="reply-author">{reply.author}</p>
                 <p className="reply-time">{new Date(reply.created_at).toLocaleString()}</p>
+              </div>
+              <div className="reply-vote-bar">
+                {renderVoteButtons('reply', reply.id, reply.userVote ?? 0)}
+                <div className="reply-vote-summary">
+                  <span className="vote-score">{reply.score ?? 0}</span>
+                  <span className="vote-label">votes</span>
+                </div>
               </div>
               <div
                 className="thread-content"

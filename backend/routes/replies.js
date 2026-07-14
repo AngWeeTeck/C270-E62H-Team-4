@@ -5,8 +5,11 @@ const { v4: uuidv4 } = require('uuid');
 const { createStore } = require('../dataStore');
 const Reply = require('../models/Reply');
 const Thread = require('../models/Thread');
+const { getVoteSummary } = require('./votes');
 
 const isDbConnected = () => mongoose.connection.readyState === 1;
+
+const getVoterId = (req) => req.headers['x-voter-id'] || req.body.voterId || null;
 
 const resolveAuthor = (body = {}) => body.author || body.username || 'anonymous';
 const resolveRichContent = (body = {}) => {
@@ -44,6 +47,8 @@ const serializeReply = (reply) => {
     author: replyObject.author || replyObject.username || 'anonymous',
     richContent,
     rich_content: richContent,
+    score: replyObject.score ?? 0,
+    userVote: replyObject.userVote ?? 0,
     created_at: replyObject.created_at || replyObject.createdAt,
     createdAt: replyObject.createdAt || replyObject.created_at
   };
@@ -131,13 +136,21 @@ router.get('/:threadId/replies', async (req, res) => {
         return res.status(404).json({ error: 'Thread not found' });
       }
 
+      const voterId = getVoterId(req);
       const replies = (req.app.locals.memoryReplies || [])
         .filter((candidate) => candidate.threadId === threadId)
         .slice()
         .sort((left, right) => new Date(left.createdAt) - new Date(right.createdAt));
+      const pagedReplies = replies.slice(skip, skip + limit);
+      const repliesWithVotes = await Promise.all(
+        pagedReplies.map(async (reply) => ({
+          ...serializeReply(reply),
+          ...(await getVoteSummary('reply', reply.id, voterId, req))
+        }))
+      );
 
       return res.json({
-        replies: replies.slice(skip, skip + limit).map(serializeReply),
+        replies: repliesWithVotes,
         pagination: {
           page,
           limit,
@@ -153,15 +166,22 @@ router.get('/:threadId/replies', async (req, res) => {
       return res.status(404).json({ error: 'Thread not found' });
     }
 
+    const voterId = getVoterId(req);
     const replies = await Reply.find({ threadId })
       .sort({ createdAt: 1 })
       .skip(skip)
       .limit(limit);
+    const repliesWithVotes = await Promise.all(
+      replies.map(async (reply) => ({
+        ...reply.toObject(),
+        ...(await getVoteSummary('reply', reply.id, voterId, req))
+      }))
+    );
 
     const total = await Reply.countDocuments({ threadId });
 
     res.json({
-      replies: replies.map(serializeReply),
+      replies: repliesWithVotes,
       pagination: {
         page,
         limit,
@@ -177,13 +197,31 @@ router.get('/:threadId/replies', async (req, res) => {
 // Get single reply
 router.get('/reply/:replyId', async (req, res) => {
   try {
-    const reply = await Reply.findOne({ id: req.params.replyId });
+    const voterId = getVoterId(req);
 
+    if (!isDbConnected()) {
+      const reply = (req.app.locals.memoryReplies || []).find((candidate) => candidate.id === req.params.replyId);
+      if (!reply) {
+        return res.status(404).json({ error: 'Reply not found' });
+      }
+
+      return res.json({
+        ...reply,
+        score: reply.score ?? 0,
+        userVote: reply.userVote ?? 0,
+        ...(await getVoteSummary('reply', reply.id, voterId, req))
+      });
+    }
+
+    const reply = await Reply.findOne({ id: req.params.replyId });
     if (!reply) {
       return res.status(404).json({ error: 'Reply not found' });
     }
 
-    res.json(reply);
+    res.json({
+      ...reply.toObject(),
+      ...(await getVoteSummary('reply', reply.id, voterId, req))
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

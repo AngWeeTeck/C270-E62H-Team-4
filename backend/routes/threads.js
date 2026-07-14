@@ -5,8 +5,11 @@ const { v4: uuidv4 } = require('uuid');
 const { createStore } = require('../dataStore');
 const Thread = require('../models/Thread');
 const Reply = require('../models/Reply');
+const { getVoteSummary } = require('./votes');
 
 const isDbConnected = () => mongoose.connection.readyState === 1;
+
+const getVoterId = (req) => req.headers['x-voter-id'] || req.body.voterId || null;
 
 const resolveAuthor = (body = {}) => body.author || body.username || 'anonymous';
 const resolveRichContent = (body = {}) => {
@@ -42,6 +45,8 @@ const serializeThread = async (thread) => {
     rich_content: richContent,
     reply_count: replyCount,
     replyCount: replyCount,
+    score: threadObject.score ?? 0,
+    userVote: threadObject.userVote ?? 0,
     created_at: threadObject.created_at || threadObject.createdAt,
     createdAt: threadObject.createdAt || threadObject.created_at
   };
@@ -71,6 +76,8 @@ router.post('/', async (req, res) => {
         rich_content: richContent,
         reply_count: 0,
         replyCount: 0,
+        score: 0,
+        userVote: 0,
         replies: [],
         createdAt: new Date().toISOString(),
         updatedAt: new Date().toISOString()
@@ -102,14 +109,20 @@ router.get('/', async (req, res) => {
     const skip = (page - 1) * limit;
 
     if (!isDbConnected()) {
+      const voterId = getVoterId(req);
       const allThreads = (getMemoryStore(req).getThreads() || [])
         .slice()
         .sort((left, right) => new Date(right.createdAt) - new Date(left.createdAt));
       const pagedThreads = allThreads.slice(skip, skip + limit);
-      const serializedThreads = await Promise.all(pagedThreads.map(serializeThread));
+      const threadsWithVotes = await Promise.all(
+        pagedThreads.map(async (thread) => ({
+          ...(await serializeThread(thread)),
+          ...(await getVoteSummary('thread', thread.id, voterId, req))
+        }))
+      );
 
       return res.json({
-        threads: serializedThreads,
+        threads: threadsWithVotes,
         pagination: {
           page,
           limit,
@@ -119,17 +132,24 @@ router.get('/', async (req, res) => {
       });
     }
 
+    const voterId = getVoterId(req);
     const threads = await Thread.find()
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .select('-replies');
 
-    const serializedThreads = await Promise.all(threads.map(serializeThread));
+    const threadsWithVotes = await Promise.all(
+      threads.map(async (thread) => ({
+        ...(await serializeThread(thread)),
+        ...(await getVoteSummary('thread', thread.id, voterId, req))
+      }))
+    );
+
     const total = await Thread.countDocuments();
 
     res.json({
-      threads: serializedThreads,
+      threads: threadsWithVotes,
       pagination: {
         page,
         limit,
@@ -146,6 +166,7 @@ router.get('/', async (req, res) => {
 router.get('/:threadId', async (req, res) => {
   try {
     if (!isDbConnected()) {
+      const voterId = getVoterId(req);
       const thread = (getMemoryStore(req).getThreads() || []).find((candidate) => candidate.id === req.params.threadId);
       if (!thread) {
         return res.status(404).json({ error: 'Thread not found' });
@@ -154,7 +175,8 @@ router.get('/:threadId', async (req, res) => {
       return res.json({
         ...thread,
         reply_count: thread.reply_count ?? thread.replyCount ?? 0,
-        replyCount: thread.reply_count ?? thread.replyCount ?? 0
+        replyCount: thread.reply_count ?? thread.replyCount ?? 0,
+        ...(await getVoteSummary('thread', thread.id, voterId, req))
       });
     }
 
@@ -167,8 +189,12 @@ router.get('/:threadId', async (req, res) => {
       return res.status(404).json({ error: 'Thread not found' });
     }
 
+    const voterId = getVoterId(req);
     const serializedThread = await serializeThread(thread);
-    res.json(serializedThread);
+    res.json({
+      ...serializedThread,
+      ...(await getVoteSummary('thread', thread.id, voterId, req))
+    });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

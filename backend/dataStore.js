@@ -11,7 +11,7 @@ function createStore({ filePath = path.join(__dirname, 'data', 'store.json') } =
 
   const readState = () => {
     if (!fs.existsSync(resolvedPath)) {
-      return { threads: [], replies: [] };
+      return { threads: [], replies: [], votes: [] };
     }
 
     try {
@@ -19,10 +19,11 @@ function createStore({ filePath = path.join(__dirname, 'data', 'store.json') } =
       const parsed = JSON.parse(content);
       return {
         threads: Array.isArray(parsed.threads) ? parsed.threads : [],
-        replies: Array.isArray(parsed.replies) ? parsed.replies : []
+        replies: Array.isArray(parsed.replies) ? parsed.replies : [],
+        votes: Array.isArray(parsed.votes) ? parsed.votes : []
       };
     } catch (error) {
-      return { threads: [], replies: [] };
+      return { threads: [], replies: [], votes: [] };
     }
   };
 
@@ -33,11 +34,12 @@ function createStore({ filePath = path.join(__dirname, 'data', 'store.json') } =
   const state = readState();
 
   const persist = () => {
-    writeState({ threads: state.threads, replies: state.replies });
+    writeState({ threads: state.threads, replies: state.replies, votes: state.votes });
   };
 
   const getThreads = () => state.threads;
   const getReplies = () => state.replies;
+  const getVotes = () => state.votes;
 
   const addThread = (thread) => {
     state.threads.push(thread);
@@ -58,6 +60,57 @@ function createStore({ filePath = path.join(__dirname, 'data', 'store.json') } =
     return reply;
   };
 
+  const setVote = (vote) => {
+    const existingVoteIndex = state.votes.findIndex((candidate) =>
+      candidate.voterId === vote.voterId &&
+      candidate.targetType === vote.targetType &&
+      candidate.targetId === vote.targetId
+    );
+
+    if (existingVoteIndex !== -1) {
+      if (vote.value === 0) {
+        state.votes.splice(existingVoteIndex, 1);
+      } else {
+        state.votes[existingVoteIndex] = {
+          ...state.votes[existingVoteIndex],
+          value: vote.value,
+          updatedAt: vote.updatedAt || new Date().toISOString()
+        };
+      }
+    } else if (vote.value !== 0) {
+      state.votes.push({
+        ...vote,
+        createdAt: vote.createdAt || new Date().toISOString(),
+        updatedAt: vote.updatedAt || new Date().toISOString()
+      });
+    }
+
+    persist();
+    return vote;
+  };
+
+  const deleteVote = (voterId, targetType, targetId) => {
+    const voteIndex = state.votes.findIndex((candidate) =>
+      candidate.voterId === voterId &&
+      candidate.targetType === targetType &&
+      candidate.targetId === targetId
+    );
+
+    if (voteIndex === -1) {
+      return false;
+    }
+
+    state.votes.splice(voteIndex, 1);
+    persist();
+    return true;
+  };
+
+  const clearVotes = () => {
+    state.votes = [];
+    persist();
+    return true;
+  };
+
   const deleteThread = (threadId) => {
     const threadIndex = state.threads.findIndex((thread) => thread.id === threadId);
     if (threadIndex === -1) {
@@ -66,6 +119,7 @@ function createStore({ filePath = path.join(__dirname, 'data', 'store.json') } =
 
     state.threads.splice(threadIndex, 1);
     state.replies = state.replies.filter((reply) => reply.threadId !== threadId);
+    state.votes = state.votes.filter((vote) => vote.targetType !== 'thread' || vote.targetId !== threadId);
     persist();
     return true;
   };
@@ -78,6 +132,7 @@ function createStore({ filePath = path.join(__dirname, 'data', 'store.json') } =
 
     const reply = state.replies[replyIndex];
     state.replies.splice(replyIndex, 1);
+    state.votes = state.votes.filter((vote) => vote.targetType !== 'reply' || vote.targetId !== replyId);
     const thread = state.threads.find((candidate) => candidate.id === reply.threadId);
     if (thread) {
       thread.replies = (thread.replies || []).filter((candidate) => candidate !== replyId);
@@ -91,17 +146,14 @@ function createStore({ filePath = path.join(__dirname, 'data', 'store.json') } =
   const clearThreads = () => {
     state.threads = [];
     state.replies = [];
-    state.threads.forEach((thread) => {
-      thread.replies = [];
-      thread.replyCount = 0;
-      thread.reply_count = 0;
-    });
+    state.votes = [];
     persist();
     return true;
   };
 
   const clearReplies = () => {
     state.replies = [];
+    state.votes = state.votes.filter((vote) => vote.targetType !== 'reply');
     state.threads.forEach((thread) => {
       thread.replies = [];
       thread.replyCount = 0;
@@ -114,12 +166,14 @@ function createStore({ filePath = path.join(__dirname, 'data', 'store.json') } =
   return {
     getThreads,
     getReplies,
+    getVotes,
     addThread,
     addReply,
-    deleteThread,
-    deleteReply,
+    setVote,
+    deleteVote,
     clearThreads,
-    clearReplies
+    clearReplies,
+    clearVotes
   };
 }
 

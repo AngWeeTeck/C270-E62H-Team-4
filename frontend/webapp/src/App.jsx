@@ -4,6 +4,7 @@ import ThreadCard from './components/ThreadCard';
 import ThreadDetail from './components/ThreadDetail';
 import ThreadForm from './components/ThreadForm';
 import { loadForumState, saveForumState } from './utils/forumPersistence';
+import { getVoterId } from './utils/voteHelpers';
 
 const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 
@@ -59,7 +60,11 @@ function App() {
 
   const loadThreads = async () => {
     try {
-      const response = await fetch(`${API_BASE}/threads`);
+      const response = await fetch(`${API_BASE}/threads`, {
+        headers: {
+          'x-voter-id': getVoterId()
+        }
+      });
       if (!response.ok) {
         throw new Error(`Threads request failed: ${response.status}`);
       }
