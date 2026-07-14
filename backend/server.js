@@ -10,7 +10,7 @@ app.use(cors());
 
 // Serve the frontend
 app.use(express.static(path.join(__dirname, '../frontend')));
-app.use(express.static(path.join(__dirname, '..')));
+
 
 // API routes
 app.use('/api/leaderboard', require('./routes/leaderboard'));
