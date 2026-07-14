@@ -102,7 +102,7 @@ router.get('/', async (req, res) => {
     const skip = (page - 1) * limit;
 
     if (!isDbConnected()) {
-      const allThreads = (req.app.locals.memoryThreads || [])
+      const allThreads = (getMemoryStore(req).getThreads() || [])
         .slice()
         .sort((left, right) => new Date(right.createdAt) - new Date(left.createdAt));
       const pagedThreads = allThreads.slice(skip, skip + limit);
@@ -146,7 +146,7 @@ router.get('/', async (req, res) => {
 router.get('/:threadId', async (req, res) => {
   try {
     if (!isDbConnected()) {
-      const thread = (req.app.locals.memoryThreads || []).find((candidate) => candidate.id === req.params.threadId);
+      const thread = (getMemoryStore(req).getThreads() || []).find((candidate) => candidate.id === req.params.threadId);
       if (!thread) {
         return res.status(404).json({ error: 'Thread not found' });
       }
@@ -180,7 +180,7 @@ router.put('/:threadId', async (req, res) => {
     const { title, content } = req.body;
 
     if (!isDbConnected()) {
-      const thread = (req.app.locals.memoryThreads || []).find((candidate) => candidate.id === req.params.threadId);
+      const thread = (getMemoryStore(req).getThreads() || []).find((candidate) => candidate.id === req.params.threadId);
       if (!thread) {
         return res.status(404).json({ error: 'Thread not found' });
       }
@@ -214,13 +214,14 @@ router.put('/:threadId', async (req, res) => {
 router.delete('/:threadId', async (req, res) => {
   try {
     if (!isDbConnected()) {
-      const threadIndex = (req.app.locals.memoryThreads || []).findIndex((candidate) => candidate.id === req.params.threadId);
+      const store = getMemoryStore(req);
+      const threadIndex = (store.getThreads() || []).findIndex((candidate) => candidate.id === req.params.threadId);
       if (threadIndex === -1) {
         return res.status(404).json({ error: 'Thread not found' });
       }
-      getMemoryStore(req).deleteThread(req.params.threadId);
-      req.app.locals.memoryThreads.splice(threadIndex, 1);
-      req.app.locals.memoryReplies = (req.app.locals.memoryReplies || []).filter((reply) => reply.threadId !== req.params.threadId);
+      store.deleteThread(req.params.threadId);
+      req.app.locals.memoryThreads = store.getThreads();
+      req.app.locals.memoryReplies = store.getReplies();
       return res.json({ message: 'Thread deleted successfully' });
     }
 
@@ -244,10 +245,10 @@ router.delete('/:threadId', async (req, res) => {
 router.delete('/', async (req, res) => {
   try {
     if (!isDbConnected()) {
-      req.app.locals.memoryThreads = [];
-      req.app.locals.memoryReplies = [];
-      getMemoryStore(req).clearThreads();
-      getMemoryStore(req).clearReplies();
+      const store = getMemoryStore(req);
+      store.clearThreads();
+      req.app.locals.memoryThreads = store.getThreads();
+      req.app.locals.memoryReplies = store.getReplies();
       return res.json({ message: 'All threads cleared successfully' });
     }
 

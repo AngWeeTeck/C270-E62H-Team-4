@@ -21,37 +21,33 @@ function App() {
 
   const clearAllThreads = async () => {
     try {
-      const response = await fetch(`${API_BASE}/threads`, {
-        method: 'DELETE'
+      const response = await fetch('/api/threads', {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' }
       });
-      const data = await response.json();
-      console.log('✅ Threads cleared:', data.message);
-      // verify server now returns no threads
+
+      let data = {};
       try {
-        const verify = await fetch(`${API_BASE}/threads`);
-        if (verify.ok) {
-          const verifyData = await verify.json();
-          const serverThreads = Array.isArray(verifyData.threads) ? verifyData.threads : [];
-          if (serverThreads.length === 0) {
-            setThreads([]);
-            setSelectedThread(null);
-            try {
-              saveForumState([], null);
-              if (typeof window !== 'undefined' && window.localStorage) {
-                window.localStorage.removeItem('studyquest-forum-state');
-              }
-            } catch (err) {
-              console.warn('Failed to clear persisted forum state', err);
-            }
-          } else {
-            console.warn('Server still returned threads after delete; not clearing local state');
-            // refresh local state from server
-            setThreads(serverThreads);
-            setSelectedThread(null);
-          }
+        data = await response.json();
+      } catch (err) {
+        console.warn('Clear response was not valid JSON:', err);
+      }
+
+      if (!response.ok) {
+        throw new Error(data.error || data.detail || 'Failed to clear threads');
+      }
+
+      console.log('✅ Threads cleared:', data.message || 'ok');
+      setThreads([]);
+      setSelectedThread(null);
+
+      try {
+        saveForumState([], null);
+        if (typeof window !== 'undefined' && window.localStorage) {
+          window.localStorage.setItem('studyquest-forum-state', JSON.stringify({ threads: [], selectedThreadId: null }));
         }
       } catch (err) {
-        console.warn('Failed to verify server threads after delete', err);
+        console.warn('Failed to clear persisted forum state', err);
       }
 
       return data;
