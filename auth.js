@@ -1,5 +1,10 @@
 (() => {
-  const API_URL = window.location.protocol === 'file:' ? 'http://127.0.0.1:5000/api' : '/api';
+  const isLocalhost = ['127.0.0.1', 'localhost'].includes(window.location.hostname);
+  const usingStaticServer = isLocalhost && window.location.port === '8000';
+  const API_URL = window.location.protocol === 'file:' || usingStaticServer
+    ? 'http://127.0.0.1:5000/api'
+    : '/api';
+  console.log('AuthService API_URL:', API_URL, 'location:', window.location.href);
   const TOKEN_KEY = 'threadquest_auth_token';
   const USER_KEY = 'threadquest_auth_user';
   const authView = document.getElementById('auth-view');

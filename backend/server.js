@@ -2,6 +2,7 @@ const express = require('express');
 const cors = require('cors');
 const dotenv = require('dotenv');
 const mongoose = require('mongoose');
+const path = require('path');
 
 dotenv.config();
 
@@ -19,9 +20,17 @@ app.use('/api/threads', require('./routes/threads'));
 app.use('/api', require('./routes/replies'));
 app.use('/api/votes', require('./routes/votes').router);
 
+// Serve frontend static files from the workspace root
+app.use(express.static(path.join(__dirname, '..')));
+
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });
+});
+
+// Always return index.html for frontend navigation
+app.get('*', (req, res) => {
+  res.sendFile(path.join(__dirname, '..', 'index.html'));
 });
 
 // Error handling middleware
