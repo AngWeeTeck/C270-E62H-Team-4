@@ -18,34 +18,9 @@ app.use(express.urlencoded({ extended: true }));
 app.use(cors());
 
 // Routes
-<<<<<<< HEAD
-// Routes
-//app.use('/api/threads', require('./routes/threads'));
-//app.use('/api', require('./routes/replies'));
-app.use('/api/notifications', require('./routes/notification'));
-app.use('/api/users', require('./routes/user'));
-=======
-app.use('/api/threads', (req, res, next) => {
-  req.app.locals.memoryThreads = memoryThreads;
-  req.app.locals.memoryReplies = memoryReplies;
-  req.app.locals.getThreadById = getThreadById;
-  req.app.locals.getRepliesForThread = getRepliesForThread;
-  req.app.locals.updateThreadReplyCount = updateThreadReplyCount;
-  next();
-}, require('./routes/threads'));
-app.use('/api/threads', (req, res, next) => {
-  req.app.locals.memoryThreads = memoryThreads;
-  req.app.locals.memoryReplies = memoryReplies;
-  req.app.locals.getThreadById = getThreadById;
-  req.app.locals.getRepliesForThread = getRepliesForThread;
-  req.app.locals.updateThreadReplyCount = updateThreadReplyCount;
-  next();
-}, require('./routes/replies'));
-app.use('/api', require('./routes/uploads'));
 app.use('/api/notifications', require('./routes/notification'));
 app.use('/api/users', require('./routes/user'));
 
->>>>>>> 61fc4fa (Transfer Faris demo notification/social changes to Faris-Clean)
 // Health check
 app.get('/api/health', (req, res) => {
   res.json({ status: 'ok' });

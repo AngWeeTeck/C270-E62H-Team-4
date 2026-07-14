@@ -1,64 +1,37 @@
 const express = require('express');
 const router = express.Router();
-<<<<<<< HEAD
-=======
 const Notification = require('../models/Notification');
 const { v4: uuidv4 } = require('uuid');
->>>>>>> 61fc4fa (Transfer Faris demo notification/social changes to Faris-Clean)
 
 // Mock database for Social & Community Features
 let users = [
   {
     id: "1",
-<<<<<<< HEAD
-    username: "WeeTeck",
-    school: "SOI",
-    diploma: "Diploma in Information Technology",
-    year: "Year 2",
-    bio: "Building the core forum thread system! Let me know if you hit bugs.",
-=======
     username: "User 1",
     school: "SOI",
     diploma: "Diploma in Information Technology",
     year: "Year 2",
     bio: "Building the core forum thread system! Test account 1.",
->>>>>>> 61fc4fa (Transfer Faris demo notification/social changes to Faris-Clean)
     followers: [],
     following: []
   },
   {
     id: "2",
-<<<<<<< HEAD
-    username: "Janelle",
-    school: "SOI",
-    diploma: "Diploma in Financial Technology",
-    year: "Year 2",
-    bio: "Working on the voting system functionality. Upvote quality content!",
-=======
     username: "User 2",
     school: "SOI",
     diploma: "Diploma in Financial Technology",
     year: "Year 2",
     bio: "Working on the voting system functionality. Test account 2.",
->>>>>>> 61fc4fa (Transfer Faris demo notification/social changes to Faris-Clean)
     followers: [],
     following: []
   },
   {
     id: "3",
-<<<<<<< HEAD
-    username: "Faris",
-    school: "SOI",
-    diploma: "Common ICT Programme",
-    year: "Year 2",
-    bio: "Building the notifications and social engine. Switch profiles to test my follow button!",
-=======
     username: "User 3",
     school: "SOI",
     diploma: "Common ICT Programme",
     year: "Year 2",
     bio: "Building the notifications and social engine. Test account 3.",
->>>>>>> 61fc4fa (Transfer Faris demo notification/social changes to Faris-Clean)
     followers: [],
     following: []
   }
@@ -108,14 +81,12 @@ router.post('/:id/follow', (req, res) => {
   } else {
     currentUser.following.push(targetId);
     targetUser.followers.push(currentUserId);
-<<<<<<< HEAD
-=======
 
     // Save a notification in MongoDB for the followed user
     const newNotif = new Notification({
       id: uuidv4(),
-      recipient: targetUser.username, // e.g. "User 3"
-      sender: currentUser.username,  // e.g. "User 1"
+      recipient: targetUser.username,
+      sender: currentUser.username,
       type: "Follow",
       message: `${currentUser.username} followed your profile!`
     });
@@ -123,7 +94,6 @@ router.post('/:id/follow', (req, res) => {
       .then(() => console.log('Follow notification saved!'))
       .catch(err => console.error('Error saving follow notification:', err));
 
->>>>>>> 61fc4fa (Transfer Faris demo notification/social changes to Faris-Clean)
     res.json({ 
       message: `Followed ${targetUser.username}`, 
       currentUserFollowing: currentUser.following,

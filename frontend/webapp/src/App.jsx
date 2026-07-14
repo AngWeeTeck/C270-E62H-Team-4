@@ -1,5 +1,4 @@
 import { useEffect, useState } from 'react';
-import { AiOutlineComment } from 'react-icons/ai';
 import ThreadCard from './components/ThreadCard';
 import ThreadDetail from './components/ThreadDetail';
 import ThreadForm from './components/ThreadForm';
@@ -164,7 +163,7 @@ function App() {
                 <h2>Latest discussion threads</h2>
                 <p>Browse the classroom feed and jump into conversations.</p>
               </div>
-              <button className="icon-pill"><AiOutlineComment size={18} /> Feed</button>
+              <button className="icon-pill">Feed</button>
             </div>
 
             {threads.length === 0 ? (
