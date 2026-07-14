@@ -60,10 +60,10 @@ function App() {
     <div className="app-shell">
       <header className="hero-header">
         <div>
-          <p className="eyebrow">🎓 StudyQuest Community</p>
+          <p className="eyebrow">🎓 Social Community</p>
           <h1>Discuss questions, share knowledge, and learn together.</h1>
         </div>
-        <button className="pill-button">🎁 Claim Reward</button>
+
       </header>
 
       {/* Navigation Tabs and User Switcher */}
