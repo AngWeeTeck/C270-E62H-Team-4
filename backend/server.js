@@ -58,6 +58,7 @@ app.use('/api/threads', (req, res, next) => {
   req.app.locals.updateThreadReplyCount = updateThreadReplyCount;
   next();
 }, require('./routes/threads'));
+
 app.use('/api/threads', (req, res, next) => {
   req.app.locals.memoryThreads = getMemoryThreads();
   req.app.locals.memoryReplies = getMemoryReplies();
@@ -66,12 +67,18 @@ app.use('/api/threads', (req, res, next) => {
   req.app.locals.updateThreadReplyCount = updateThreadReplyCount;
   next();
 }, require('./routes/replies'));
+
 app.use('/api/votes', require('./routes/votes').router);
 app.use('/api', require('./routes/uploads'));
 app.use('/api/auth', require('./routes/auth'));
 
+// Leaderboard & Dashboard (Thihan)
+app.use('/api/leaderboard', require('./routes/leaderboard'));
+app.use('/api/dashboard', require('./routes/dashboard'));
+
 // Serve frontend static files from the workspace root
 app.use(express.static(path.join(__dirname, '..')));
+app.use(express.static(path.join(__dirname, '../frontend')));
 
 // Root and health check
 app.get('/', (req, res) => {
