@@ -4,7 +4,7 @@
  * - Display forum threads
  * - Show replies under each thread
  * - Create new threads and replies
- * - Display upvote/downvote controls for threads and replies
+ * - Display in main feed
  */
 
 class ForumDisplay {
@@ -15,7 +15,6 @@ class ForumDisplay {
     this.selectedThreadId = null;
     this.apiUrl = options.apiUrl || '/api';
     this.useApi = Boolean(options.useApi);
-    this.pendingVotes = new Set();
 
     this.initializeDisplay();
   }
@@ -81,13 +80,11 @@ class ForumDisplay {
         content: 'This is the first thread. Feel free to introduce yourself and ask questions!',
         author: 'Admin',
         replyCount: 3,
-        score: 2,
-        userVote: 0,
         createdAt: new Date(Date.now() - 24 * 60 * 60 * 1000),
         replies: [
-          { id: '1-1', content: 'Great place to discuss ideas!', author: 'User1', score: 1, userVote: 0, createdAt: new Date(Date.now() - 20 * 60 * 60 * 1000) },
-          { id: '1-2', content: 'Looking forward to participating', author: 'User2', score: 0, userVote: 0, createdAt: new Date(Date.now() - 18 * 60 * 60 * 1000) },
-          { id: '1-3', content: 'Thanks for setting this up!', author: 'User3', score: 0, userVote: 0, createdAt: new Date(Date.now() - 12 * 60 * 60 * 1000) }
+          { id: '1-1', content: 'Great place to discuss ideas!', author: 'User1', createdAt: new Date(Date.now() - 20 * 60 * 60 * 1000) },
+          { id: '1-2', content: 'Looking forward to participating', author: 'User2', createdAt: new Date(Date.now() - 18 * 60 * 60 * 1000) },
+          { id: '1-3', content: 'Thanks for setting this up!', author: 'User3', createdAt: new Date(Date.now() - 12 * 60 * 60 * 1000) }
         ]
       },
       {
@@ -96,11 +93,9 @@ class ForumDisplay {
         content: 'The rich text editor supports formatting, code blocks, and media embeds.',
         author: 'Moderator',
         replyCount: 1,
-        score: 1,
-        userVote: 0,
         createdAt: new Date(Date.now() - 12 * 60 * 60 * 1000),
         replies: [
-          { id: '2-1', content: 'This is super helpful, thanks!', author: 'User4', score: 0, userVote: 0, createdAt: new Date(Date.now() - 8 * 60 * 60 * 1000) }
+          { id: '2-1', content: 'This is super helpful, thanks!', author: 'User4', createdAt: new Date(Date.now() - 8 * 60 * 60 * 1000) }
         ]
       }
     ];
@@ -118,7 +113,6 @@ class ForumDisplay {
         </div>
         <p class="thread-preview">${this.escapeHtml(thread.content.substring(0, 150))}...</p>
         <div class="thread-meta">
-          ${this.renderVoteControls('thread', thread)}
           <span class="reply-count">Replies: ${thread.replyCount}</span>
           <span class="thread-date">${this.formatDate(thread.createdAt)}</span>
           <button class="btn-view-thread" data-thread-id="${thread.id}">View Thread</button>
@@ -132,7 +126,6 @@ class ForumDisplay {
         this.showThreadDetail(btn.dataset.threadId);
       });
     });
-    this.attachVoteListeners(threadsList);
   }
 
   async showThreadDetail(threadId) {
@@ -168,7 +161,6 @@ class ForumDisplay {
           <h2>${this.escapeHtml(thread.title)}</h2>
           <p class="detail-author">Posted by ${this.escapeHtml(thread.author)} on ${this.formatDate(thread.createdAt)}</p>
         </div>
-        ${this.renderVoteControls('thread', thread)}
         <div class="thread-detail-content">
           ${this.escapeHtml(thread.content)}
         </div>
@@ -181,7 +173,6 @@ class ForumDisplay {
                   <span class="reply-author">${this.escapeHtml(reply.author)}</span>
                   <span class="reply-date">${this.formatDate(reply.createdAt)}</span>
                 </div>
-                ${this.renderVoteControls('reply', reply)}
                 <div class="reply-content">${this.escapeHtml(reply.content)}</div>
               </div>
             `).join('')}
@@ -211,7 +202,6 @@ class ForumDisplay {
       submitReplyBtn.addEventListener('click', () => this.submitReply(threadId));
     }
 
-    this.attachVoteListeners(threadDetail);
   }
 
   async submitReply(threadId) {
@@ -242,8 +232,6 @@ class ForumDisplay {
           id: `${threadId}-${thread.replies.length + 1}`,
           content: replyContent.value,
           author: this.getCurrentUser()?.username || 'You',
-          score: 0,
-          userVote: 0,
           createdAt: new Date()
         };
       }
@@ -305,8 +293,6 @@ class ForumDisplay {
               content,
               author: this.getCurrentUser()?.username || 'You',
               replyCount: 0,
-              score: 0,
-              userVote: 0,
               createdAt: new Date(),
               replies: []
             };
@@ -328,7 +314,7 @@ class ForumDisplay {
     const user = this.getCurrentUser();
     authState.textContent = user
       ? `Logged in as ${user.username}`
-      : 'Login to create threads, reply, and vote.';
+      : 'Login to create threads and reply.';
   }
 
   getCurrentUser() {
@@ -362,93 +348,6 @@ class ForumDisplay {
     }
 
     return data;
-  }
-
-  renderVoteControls(targetType, item) {
-    const score = Number(item.score || 0);
-    const userVote = Number(item.userVote || 0);
-    const disabledText = this.pendingVotes.has(`${targetType}:${item.id}`) ? 'disabled' : '';
-
-    return `
-      <div class="vote-controls" data-target-type="${targetType}" data-target-id="${item.id}">
-        <button class="vote-btn ${userVote === 1 ? 'vote-active' : ''}" data-vote-value="1" ${disabledText} aria-label="Upvote">▲</button>
-        <span class="vote-score" aria-label="Vote score">${score}</span>
-        <button class="vote-btn ${userVote === -1 ? 'vote-active' : ''}" data-vote-value="-1" ${disabledText} aria-label="Downvote">▼</button>
-      </div>
-    `;
-  }
-
-  attachVoteListeners(root) {
-    root.querySelectorAll('.vote-btn').forEach((button) => {
-      button.addEventListener('click', () => {
-        const controls = button.closest('.vote-controls');
-        this.submitVote(
-          controls.dataset.targetType,
-          controls.dataset.targetId,
-          Number(button.dataset.voteValue)
-        );
-      });
-    });
-  }
-
-  async submitVote(targetType, targetId, voteValue) {
-    if (!this.ensureLoggedIn()) return;
-
-    const pendingKey = `${targetType}:${targetId}`;
-    if (this.pendingVotes.has(pendingKey)) return;
-
-    this.pendingVotes.add(pendingKey);
-    let voteUpdated = false;
-
-    try {
-      const response = this.useApi && typeof fetch !== 'undefined'
-        ? await this.apiRequest(`/votes/${targetType}/${targetId}/vote`, {
-            method: 'PUT',
-            body: JSON.stringify({ voteValue })
-          })
-        : this.applyMockVote(targetType, targetId, voteValue);
-
-      this.updateVoteState(targetType, targetId, response.score, response.userVote);
-      voteUpdated = true;
-    } catch (error) {
-      this.showError(error.message);
-    } finally {
-      this.pendingVotes.delete(pendingKey);
-
-      if (voteUpdated) {
-        this.renderThreadsList();
-
-        if (this.selectedThreadId) {
-          this.showThreadDetail(this.selectedThreadId);
-        }
-      }
-    }
-  }
-
-  applyMockVote(targetType, targetId, voteValue) {
-    const item = this.findVoteTarget(targetType, targetId);
-    const previousVote = Number(item.userVote || 0);
-    const nextVote = previousVote === voteValue ? 0 : voteValue;
-    const score = Number(item.score || 0) - previousVote + nextVote;
-
-    return { success: true, score, userVote: nextVote };
-  }
-
-  findVoteTarget(targetType, targetId) {
-    if (targetType === 'thread') {
-      return this.threads.find((thread) => thread.id === targetId);
-    }
-
-    return this.threads.flatMap((thread) => thread.replies || []).find((reply) => reply.id === targetId);
-  }
-
-  updateVoteState(targetType, targetId, score, userVote) {
-    const item = this.findVoteTarget(targetType, targetId);
-
-    if (item) {
-      item.score = score;
-      item.userVote = userVote;
-    }
   }
 
   upsertThread(thread) {

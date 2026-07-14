@@ -19,7 +19,7 @@ class AuthPages {
         <div>
           <p class="eyebrow">Thread Quest</p>
           <h2>${isRegister ? 'Create account' : 'Login'}</h2>
-          <p class="auth-copy">${isRegister ? 'Join the discussion with a secure account.' : 'Welcome back. Login to post and vote.'}</p>
+          <p class="auth-copy">${isRegister ? 'Join the discussion with a secure account.' : 'Welcome back. Log in to continue.'}</p>
         </div>
         <form id="auth-form" class="auth-form" novalidate>
           ${isRegister ? `

@@ -2,8 +2,7 @@ const express = require('express');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
 const Thread = require('../models/Thread');
-const { optionalAuth, requireAuth } = require('../middleware/auth');
-const { getVoteSummary } = require('./votes');
+const { requireAuth } = require('../middleware/auth');
 
 // Create a new thread
 router.post('/', requireAuth, async (req, res) => {
@@ -25,40 +24,28 @@ router.post('/', requireAuth, async (req, res) => {
     });
 
     const savedThread = await thread.save();
-    res.status(201).json({
-      ...savedThread.toObject(),
-      score: 0,
-      userVote: 0
-    });
+    res.status(201).json(savedThread);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }
 });
 
 // Get all threads (with pagination)
-router.get('/', optionalAuth, async (req, res) => {
+router.get('/', async (req, res) => {
   try {
     const page = parseInt(req.query.page) || 1;
     const limit = parseInt(req.query.limit) || 10;
     const skip = (page - 1) * limit;
 
-    const userId = req.user?._id;
     const threads = await Thread.find()
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
       .select('-replies');
-    const threadsWithVotes = await Promise.all(
-      threads.map(async (thread) => ({
-        ...thread.toObject(),
-        ...(await getVoteSummary('thread', thread.id, userId))
-      }))
-    );
-
     const total = await Thread.countDocuments();
 
     res.json({
-      threads: threadsWithVotes,
+      threads,
       pagination: {
         page,
         limit,
@@ -72,7 +59,7 @@ router.get('/', optionalAuth, async (req, res) => {
 });
 
 // Get single thread with replies
-router.get('/:threadId', optionalAuth, async (req, res) => {
+router.get('/:threadId', async (req, res) => {
   try {
     const thread = await Thread.findOne({ id: req.params.threadId });
 
@@ -80,10 +67,7 @@ router.get('/:threadId', optionalAuth, async (req, res) => {
       return res.status(404).json({ error: 'Thread not found' });
     }
 
-    res.json({
-      ...thread.toObject(),
-      ...(await getVoteSummary('thread', thread.id, req.user?._id))
-    });
+    res.json(thread);
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

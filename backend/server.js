@@ -18,7 +18,6 @@ app.use(cors());
 app.use('/api/auth', require('./routes/auth'));
 app.use('/api/threads', require('./routes/threads'));
 app.use('/api', require('./routes/replies'));
-app.use('/api/votes', require('./routes/votes').router);
 
 // Serve frontend static files from the workspace root
 app.use(express.static(path.join(__dirname, '..')));
