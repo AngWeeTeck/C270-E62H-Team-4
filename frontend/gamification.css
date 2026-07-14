@@ -1898,3 +1898,67 @@ button:disabled {
 .sakura-theme .voucher-item::after {
   background: #fbd5e5;
 }
+
+/* ===========================
+   Top Navigation Bar
+=========================== */
+
+.top-navbar{
+    display:grid;
+    grid-template-columns:1fr auto 1fr;
+    align-items:center;
+
+    padding:16px 40px;
+    background:#1f2937;
+    color:white;
+
+    position:sticky;
+    top:0;
+    z-index:1000;
+
+    box-shadow:0 3px 10px rgba(0,0,0,.2);
+}
+
+.nav-logo{
+    justify-self:start;
+    display:flex;
+    align-items:center;
+    font-size:24px;
+    font-weight:bold;
+}
+
+.nav-links{
+    display:flex;
+    justify-content:center;
+    gap:35px;
+}
+
+.nav-links a{
+    text-decoration:none;
+    color:white;
+    font-weight:600;
+    transition:0.3s;
+}
+
+.nav-links a:hover{
+    color:#facc15;
+}
+
+.nav-actions{
+    justify-self:end;
+}
+
+.logout-btn{
+    padding:10px 18px;
+    border:none;
+    border-radius:8px;
+    background:#ef4444;
+    color:white;
+    font-weight:bold;
+    cursor:pointer;
+    transition:0.3s;
+}
+
+.logout-btn:hover{
+    background:#dc2626;
+}
