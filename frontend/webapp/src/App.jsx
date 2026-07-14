@@ -22,7 +22,7 @@ function App() {
 
   const clearAllThreads = async () => {
     try {
-      const response = await fetch('/api/threads', {
+      const response = await fetch(`${API_BASE}/threads`, {
         method: 'DELETE',
         headers: { 'Content-Type': 'application/json' }
       });
@@ -72,9 +72,13 @@ function App() {
       const data = await response.json();
       const loadedThreads = Array.isArray(data.threads) ? data.threads : [];
       setThreads(loadedThreads);
+      const restored = loadForumState();
+      const restoredSelection = loadedThreads.find((thread) => thread.id === restored.selectedThreadId) || null;
+      setSelectedThread(restoredSelection);
+
       // persist authoritative server state so localStorage won't rehydrate deleted threads
       try {
-        saveForumState(loadedThreads, null);
+        saveForumState(loadedThreads, restoredSelection?.id ?? null);
       } catch (err) {
         console.warn('Failed to save forum state after loading from server', err);
       }

@@ -5,6 +5,7 @@ const { v4: uuidv4 } = require('uuid');
 const { createStore } = require('../dataStore');
 const Thread = require('../models/Thread');
 const Reply = require('../models/Reply');
+const Vote = require('../models/Vote');
 const { getVoteSummary } = require('./votes');
 
 const isDbConnected = () => mongoose.connection.readyState === 1;
@@ -251,15 +252,23 @@ router.delete('/:threadId', async (req, res) => {
       return res.json({ message: 'Thread deleted successfully' });
     }
 
-    const thread = await Thread.findOneAndDelete({ id: req.params.threadId });
+    const thread = await Thread.findOne({ id: req.params.threadId });
 
     if (!thread) {
       return res.status(404).json({ error: 'Thread not found' });
     }
 
-    // Also delete all replies for this thread
-    const Reply = require('../models/Reply');
+    const replies = await Reply.find({ threadId: req.params.threadId }).select('id');
+    const replyIds = replies.map((reply) => reply.id);
+
+    await Thread.findOneAndDelete({ id: req.params.threadId });
     await Reply.deleteMany({ threadId: req.params.threadId });
+    await Vote.deleteMany({
+      $or: [
+        { targetType: 'thread', targetId: req.params.threadId },
+        { targetType: 'reply', targetId: { $in: replyIds } }
+      ]
+    });
 
     res.json({ message: 'Thread deleted successfully' });
   } catch (error) {
@@ -281,6 +290,7 @@ router.delete('/', async (req, res) => {
     await Thread.deleteMany({});
     const Reply = require('../models/Reply');
     await Reply.deleteMany({});
+    await Vote.deleteMany({});
 
     res.json({ message: 'All threads cleared successfully' });
   } catch (error) {
