@@ -17,7 +17,7 @@ const reports = [
         contentType: "Thread",
         contentId: "THR-215",
         reason: "Harassment",
-        description: "The user disagreed with my opinion about study methods and replied that my approach was ineffective. I felt offended and believe this should be considered harassment, even though no abusive language, threats or personal attacks were used."
+        description: "The reported user disagreed with my study advice and replied that my revision method was ineffective. Although I found the comment upsetting, it did not contain abusive language, threats, or personal attacks and therefore does not violate the forum guidelines."
     }
 
 ];

@@ -115,35 +115,92 @@ class ModeratorDashboard {
         this.renderReports(reports);
     }
 
-    renderReports(reports) {
-        if (!Array.isArray(reports) || reports.length === 0) {
-            this.reportsContainer.innerHTML = "<p>No pending reports.</p>";
-            return;
-        }
+renderReports(reports) {
 
-        this.reportsContainer.innerHTML = reports.map((report) => `
-            <div class="card">
-                <h3>Report #${report.id}</h3>
-                <p><strong>Reporter:</strong> ${report.reporterId}</p>
-                <p><strong>Reported User:</strong> ${report.reportedUserId}</p>
-                <p><strong>Content:</strong> ${report.contentType}:${report.contentId}</p>
-                <p><strong>Reason:</strong> ${report.reason}</p>
-                <p>${report.description || ""}</p>
-                <div class="actions">
-                    <button data-action="resolve" data-report-id="${report.id}">Resolve</button>
-                    <button data-action="reject" data-report-id="${report.id}">Reject</button>
-                </div>
-            </div>
-        `).join("");
+    if (!Array.isArray(reports) || reports.length === 0) {
 
-        this.reportsContainer.querySelectorAll("button[data-action='resolve']").forEach((button) => {
-            button.addEventListener("click", () => this.resolveReport(Number(button.dataset.reportId)));
-        });
+        this.reportsContainer.innerHTML = "<p>No pending reports.</p>";
+        return;
 
-        this.reportsContainer.querySelectorAll("button[data-action='reject']").forEach((button) => {
-            button.addEventListener("click", () => this.rejectReport(Number(button.dataset.reportId)));
-        });
     }
+
+    this.reportsContainer.innerHTML = reports.map((report) => `
+
+        <div class="card">
+
+            <h3>🚩 Pending Report #${report.id}</h3>
+
+            <p>
+                <strong>Reporter:</strong>
+                ${report.reporter}
+            </p>
+
+            <p>
+                <strong>Reported User:</strong>
+                ${report.reportedUser}
+            </p>
+
+            <p>
+                <strong>Content Type:</strong>
+                ${report.contentType}
+            </p>
+
+            <p>
+                <strong>Content ID:</strong>
+                ${report.contentId}
+            </p>
+
+            <p>
+                <strong>Reason:</strong>
+                ${report.reason}
+            </p>
+
+            <p>
+                <strong>Description:</strong>
+                ${report.description || ""}
+            </p>
+
+            <div class="actions">
+
+                <button
+                    data-action="resolve"
+                    data-report-id="${report.id}">
+                    Resolve
+                </button>
+
+                <button
+                    data-action="reject"
+                    data-report-id="${report.id}">
+                    Reject
+                </button>
+
+            </div>
+
+        </div>
+
+    `).join("");
+
+    this.reportsContainer
+        .querySelectorAll("button[data-action='resolve']")
+        .forEach((button) => {
+
+            button.addEventListener("click", () =>
+                this.resolveReport(Number(button.dataset.reportId))
+            );
+
+        });
+
+    this.reportsContainer
+        .querySelectorAll("button[data-action='reject']")
+        .forEach((button) => {
+
+            button.addEventListener("click", () =>
+                this.rejectReport(Number(button.dataset.reportId))
+            );
+
+        });
+
+}
 
     async resolveReport(id) {
         const response = await fetch(`${this.baseUrl}/api/reports/${id}/resolve`, {
