@@ -7,6 +7,18 @@
   </head>
   <body>
     <div id="root"></div>
+    <script>
+      const params = new URLSearchParams(window.location.search);
+      const token = params.get('authToken');
+      if (token) {
+        try {
+          localStorage.setItem('threadquest_auth_token', token);
+          window.history.replaceState({}, '', window.location.pathname);
+        } catch (err) {
+          console.warn('Failed to persist auth token:', err);
+        }
+      }
+    </script>
     <script type="module" src="/src/main.jsx"></script>
   </body>
 </html>

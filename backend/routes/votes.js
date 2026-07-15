@@ -4,7 +4,9 @@ const Vote = require('../models/Vote');
 const { createStore } = require('../dataStore');
 
 const getVoterId = (req) => {
-  return req.headers['x-voter-id'] || req.body.voterId || 'anonymous';
+  const headers = req?.headers || {};
+  const body = req?.body || {};
+  return headers['x-voter-id'] || body.voterId || 'anonymous';
 };
 
 const isDbConnected = () => require('mongoose').connection.readyState === 1;

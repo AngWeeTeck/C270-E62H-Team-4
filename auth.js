@@ -1,6 +1,6 @@
 (() => {
   const isLocalhost = ['127.0.0.1', 'localhost'].includes(window.location.hostname);
-  const usingStaticServer = isLocalhost && window.location.port === '8000';
+  const usingStaticServer = isLocalhost && ['8000', '5173', ''].includes(window.location.port);
   const API_URL = window.location.protocol === 'file:' || usingStaticServer
     ? 'http://127.0.0.1:5000/api'
     : '/api';
@@ -21,6 +21,7 @@
   const modal = document.getElementById('logout-modal');
   const formOptions = document.querySelector('.form-options');
   const switchCopy = document.querySelector('.switch-copy');
+  const MAIN_APP_URL = 'http://127.0.0.1:5173/';
   let resetToken = new URLSearchParams(window.location.search).get('resetToken');
   let mode = 'login';
 
@@ -162,8 +163,8 @@
     const registering = mode === 'register';
     const resetting = mode === 'reset';
 
-    if (!resetting && (!email || !emailInput.validity.valid)) {
-      showMessage('Please enter a valid email address.');
+    if (!resetting && (!email || !emailInput.value.trim())) {
+      showMessage('Please enter your email address or username.');
       return emailInput.focus();
     }
     if (registering && usernameInput.value.trim().length < 3) {
@@ -212,8 +213,10 @@
       saveSession(data.token, data.user);
       if (rememberInput.checked) localStorage.setItem('threadquest-email', email);
       else localStorage.removeItem('threadquest-email');
-      showMessage(data.message || 'Success!', 'success');
-      window.setTimeout(() => showUser(data.user), 350);
+      showMessage(data.message || 'Success! Redirecting to the app…', 'success');
+      window.setTimeout(() => {
+        window.location.href = `${MAIN_APP_URL}?authToken=${encodeURIComponent(data.token)}`;
+      }, 350);
     } catch (error) {
       showMessage(error.message);
       // If we get auth errors, always clear the session to prepare for account switch

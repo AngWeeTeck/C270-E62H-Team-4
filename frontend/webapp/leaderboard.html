@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Leaderboard | StudyQuest</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, system-ui, sans-serif;
+      background: #f4f2eb;
+      color: #1f2c28;
+      padding: 24px;
+    }
+    .leaderboard-shell {
+      max-width: 900px;
+      margin: 0 auto;
+      background: white;
+      border-radius: 24px;
+      box-shadow: 0 24px 80px rgba(31, 44, 40, 0.12);
+      padding: 32px;
+    }
+    .header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 28px;
+    }
+    .header-row h1 {
+      margin: 0;
+      font-size: 36px;
+    }
+    .nav-links {
+      display: flex;
+      gap: 16px;
+    }
+    .nav-link {
+      color: #2f665a;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 14px;
+    }
+    .table-wrapper {
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th {
+      text-align: left;
+      padding: 12px;
+      border-bottom: 2px solid #e4e6e2;
+      font-weight: 700;
+      color: #3a4a3f;
+      font-size: 14px;
+    }
+    td {
+      padding: 16px 12px;
+      border-bottom: 1px solid #e4e6e2;
+      color: #4f5b51;
+    }
+    tr:hover {
+      background: #faf9f4;
+    }
+    .position {
+      font-weight: 700;
+      color: #2f665a;
+    }
+    .medal {
+      font-size: 20px;
+      margin-right: 8px;
+    }
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #556157;
+    }
+    .error {
+      text-align: center;
+      padding: 40px;
+      color: #c74343;
+      background: #fef1f1;
+      border-radius: 12px;
+    }
+  </style>
+</head>
+<body>
+  <div class="leaderboard-shell">
+    <div class="header-row">
+      <h1>🏆 Leaderboard</h1>
+      <div class="nav-links">
+        <a href="./index.html" class="nav-link">Home</a>
+        <a href="./profile.html" class="nav-link">Profile</a>
+        <a href="./dashboard.html" class="nav-link">Dashboard</a>
+      </div>
+    </div>
+
+    <div id="content" class="loading">Loading leaderboard…</div>
+  </div>
+
+  <script>
+    const API_URL = 'http://127.0.0.1:5000/api';
+    const contentEl = document.getElementById('content');
+
+    async function loadLeaderboard() {
+      try {
+        const response = await fetch(`${API_URL}/leaderboard?limit=100`);
+        if (!response.ok) throw new Error(`Failed to load leaderboard: ${response.status}`);
+        
+        const data = await response.json();
+        const leaderboard = data.leaderboard || [];
+
+        if (leaderboard.length === 0) {
+          contentEl.innerHTML = '<p style="text-align: center; color: #556157;">No leaderboard data yet.</p>';
+          return;
+        }
+
+        let html = `<div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Position</th>
+                <th>Player</th>
+                <th>XP</th>
+                <th>Level</th>
+                <th>Coins</th>
+                <th>Achievements</th>
+              </tr>
+            </thead>
+            <tbody>`;
+
+        leaderboard.forEach(player => {
+          const medal = player.position === 1 ? '🥇' : player.position === 2 ? '🥈' : player.position === 3 ? '🥉' : '•';
+          html += `<tr>
+            <td><span class="medal">${medal}</span><span class="position">#${player.position}</span></td>
+            <td><strong>${player.author}</strong></td>
+            <td>${player.xp}</td>
+            <td>${player.level}</td>
+            <td>${player.coins}</td>
+            <td>${player.achievementsCount}</td>
+          </tr>`;
+        });
+
+        html += `</tbody></table></div>`;
+        contentEl.innerHTML = html;
+      } catch (err) {
+        console.error(err);
+        contentEl.innerHTML = `<div class="error">Failed to load leaderboard: ${err.message}</div>`;
+      }
+    }
+
+    loadLeaderboard();
+  </script>
+</body>
+</html>

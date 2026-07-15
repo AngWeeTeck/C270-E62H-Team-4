@@ -10,7 +10,11 @@ const { getVoteSummary } = require('./votes');
 
 const isDbConnected = () => mongoose.connection.readyState === 1;
 
-const getVoterId = (req) => req.headers['x-voter-id'] || req.body.voterId || null;
+const getVoterId = (req) => {
+  const headers = req?.headers || {};
+  const body = req?.body || {};
+  return headers['x-voter-id'] || body.voterId || null;
+};
 
 const resolveAuthor = (body = {}) => body.author || body.username || 'anonymous';
 const resolveRichContent = (body = {}) => {

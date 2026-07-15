@@ -1,4 +1,5 @@
 import { useEffect, useState } from 'react';
+import Navbar from './components/Navbar';
 import { AiOutlineComment } from 'react-icons/ai';
 import ThreadCard from './components/ThreadCard';
 import ThreadDetail from './components/ThreadDetail';
@@ -151,6 +152,7 @@ function App() {
 
   return (
     <div className="app-shell">
+      <Navbar />
       <header className="hero-header">
         <div>
           <p className="eyebrow">🎓 StudyQuest Community</p>
