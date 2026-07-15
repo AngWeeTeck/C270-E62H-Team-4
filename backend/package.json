@@ -9,13 +9,17 @@
     "nodemailer": "^9.0.3",
     "uuid": "^14.0.1"
   },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "supertest": "^6.3.3"
+  },
   "name": "backend",
   "version": "1.0.0",
   "description": "",
   "main": "server.js",
   "scripts": {
-    "test": "node --test",
-    "test:ci": "node --test",
+    "test": "jest",
+    "test:ci": "jest --ci --coverage --maxWorkers=2",
     "start": "node server.js"
   },
   "keywords": [],
