@@ -2,7 +2,7 @@ const express = require('express');
 const mongoose = require('mongoose');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
-const { createStore } = require('../dataStore');
+const { store } = require('../dataStore');
 const Reply = require('../models/Reply');
 const Thread = require('../models/Thread');
 const { getVoteSummary } = require('./votes');
@@ -24,7 +24,6 @@ const getMemoryStore = (req) => {
     return existingStore;
   }
 
-  const store = createStore();
   req.app.locals.dataStore = store;
   req.app.locals.store = store;
   return store;

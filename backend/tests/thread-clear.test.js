@@ -1,5 +1,8 @@
 const request = require('supertest');
-const { app, store } = require('../server');
+const { createApp } = require('../server');
+const { store } = require('../dataStore');
+
+const app = createApp();
 
 describe('thread clearing', () => {
   beforeEach(async () => {

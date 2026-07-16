@@ -1,5 +1,7 @@
 const request = require('supertest');
-const app = require('../server');
+const { createApp } = require('../server');
+
+const app = createApp();
 
 describe('Thread API payload compatibility', () => {
   test('accepts frontend-style author and rich content fields', async () => {

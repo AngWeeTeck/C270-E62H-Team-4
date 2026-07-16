@@ -171,10 +171,17 @@ function createStore({ filePath = path.join(__dirname, 'data', 'store.json') } =
     addReply,
     setVote,
     deleteVote,
+    deleteThread,
+    deleteReply,
     clearThreads,
     clearReplies,
     clearVotes
   };
 }
 
-module.exports = { createStore };
+const store = createStore();
+
+module.exports = {
+  createStore,
+  store
+};
