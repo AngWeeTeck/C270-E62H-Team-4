@@ -33,12 +33,16 @@ function createApp() {
 
 async function startServer() {
     const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/forum_db";
-    try {
-        await mongoose.connect(MONGODB_URI);
-        console.log(`Connected to MongoDB at ${MONGODB_URI}`);
-    } catch (error) {
-        console.error("MongoDB connection failed:", error.message);
-        process.exit(1);
+    if (process.env.SKIP_DB === "true") {
+        console.log("Skipping MongoDB connection for smoke test");
+    } else {
+        try {
+            await mongoose.connect(MONGODB_URI);
+            console.log(`Connected to MongoDB at ${MONGODB_URI}`);
+        } catch (error) {
+            console.error("MongoDB connection failed:", error.message);
+            process.exit(1);
+        }
     }
 
     const app = createApp();
