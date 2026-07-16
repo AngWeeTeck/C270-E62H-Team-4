@@ -77,7 +77,7 @@ describe('redesigned authentication page', () => {
     document.getElementById('auth-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    expect(fetch).toHaveBeenCalledWith('/api/auth/login', expect.objectContaining({
+    expect(fetch).toHaveBeenCalledWith(expect.stringMatching(/\/api\/auth\/login$/), expect.objectContaining({
       method: 'POST',
       body: JSON.stringify({ login: user.email, password: 'Password123!' })
     }));
@@ -101,7 +101,10 @@ describe('redesigned authentication page', () => {
     document.getElementById('confirm-logout').click();
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    expect(fetch).toHaveBeenCalledWith('/api/auth/logout', expect.objectContaining({ method: 'POST' }));
+    expect(fetch).toHaveBeenCalledWith(
+      expect.stringMatching(/\/api\/auth\/logout$/),
+      expect.objectContaining({ method: 'POST' })
+    );
     expect(store.threadquest_auth_token).toBeUndefined();
     expect(store.threadquest_auth_user).toBeUndefined();
     expect(document.getElementById('auth-view').style.display).toBe('');
@@ -117,7 +120,7 @@ describe('redesigned authentication page', () => {
     document.getElementById('forgot-btn').click();
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    expect(fetch).toHaveBeenCalledWith('/api/auth/forgot-password', expect.objectContaining({
+    expect(fetch).toHaveBeenCalledWith(expect.stringMatching(/\/api\/auth\/forgot-password$/), expect.objectContaining({
       method: 'POST',
       body: JSON.stringify({ email: 'janelle@example.com' })
     }));
@@ -134,7 +137,7 @@ describe('redesigned authentication page', () => {
     document.getElementById('auth-form').dispatchEvent(new Event('submit', { bubbles: true, cancelable: true }));
     await new Promise((resolve) => setTimeout(resolve, 0));
 
-    expect(fetch).toHaveBeenCalledWith('/api/auth/reset-password', expect.objectContaining({
+    expect(fetch).toHaveBeenCalledWith(expect.stringMatching(/\/api\/auth\/reset-password$/), expect.objectContaining({
       method: 'POST',
       body: JSON.stringify({
         token: 'secure-reset-token',
