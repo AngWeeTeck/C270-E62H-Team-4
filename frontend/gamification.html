@@ -1,0 +1,47 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gamification Demo</title>
+  <link rel="stylesheet" href="gamification.css">
+</head>
+<body>
+
+  <nav class="navbar">
+    <a class="brand" href="dashboard.html">🏆 StudyQuest</a>
+    <div class="nav-links">
+      <a class="nav-link" href="dashboard.html">Dashboard</a>
+      <a class="nav-link" href="leaderboard.html">Leaderboard</a>
+      <a class="nav-link" href="threads.html">Thread Forum</a>
+      <a class="nav-link" href="communities.html">Communities</a>
+    </div>
+    <a class="nav-link logout" href="login.html">Logout</a>
+  </nav>
+
+  <div class="container">
+
+    <div id="daily-reward-card"></div>
+
+    <div class="main-layout">
+      <div id="profile-card"></div>
+
+      <div class="right-column">
+        <div id="shop-card"></div>
+        <div id="statistics-dashboard"></div>
+      </div>
+    </div>
+
+    <div class="demo-panel">
+      <div id="developer-panel"></div>
+    </div>
+  </div>
+
+  <script src="PlayerProfileCard.js"></script>
+  <script src="ShopPage.js"></script>
+  <script src="DailyRewardCard.js"></script>
+  <script src="DeveloperPanel.js"></script>
+  <script src="StatisticsDashboard.js"></script>
+  <script src="gamification.js"></script>
+</body>
+</html>

@@ -1,0 +1,17 @@
+{
+  "name": "forum-frontend",
+  "version": "1.0.0",
+  "description": "Forum and Rich Text Editor frontend",
+  "main": "index.js",
+  "scripts": {
+    "test": "jest --coverage",
+    "test:ci": "jest --coverage --passWithNoTests --testPathPattern=tests/ --reporters=default --reporters=jest-junit",
+    "test:watch": "jest --watch"
+  },
+  "devDependencies": {
+    "jest": "^29.5.0",
+    "jest-junit": "^13.0.0",
+    "jest-environment-jsdom": "^30.4.1",
+    "jsdom": "^21.1.0"
+  }
+}

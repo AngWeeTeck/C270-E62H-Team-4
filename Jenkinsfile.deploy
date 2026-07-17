@@ -1,0 +1,58 @@
+pipeline {
+    agent any
+
+    parameters {
+        choice(name: 'ENVIRONMENT', choices: ['development', 'staging', 'production'], description: 'Target environment to deploy to')
+        booleanParam(name: 'BUILD_DOCKER', defaultValue: true, description: 'Build Docker image before deploy')
+    }
+
+    environment {
+        PATH = "/usr/local/bin:/usr/bin:/bin:${env.PATH}"
+        NODE_ENV = "${params.ENVIRONMENT}"
+        DOCKER_IMAGE_NAME = 'forum-backend'
+        DOCKER_IMAGE_TAG = "${BUILD_NUMBER}"
+    }
+
+    options {
+        timeout(time: 20, unit: 'MINUTES')
+        timestamps()
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Build Docker Image') {
+            when {
+                expression { params.BUILD_DOCKER == true }
+            }
+            steps {
+                sh '''
+                    docker build -t ${DOCKER_IMAGE_NAME}:${DOCKER_IMAGE_TAG} \
+                               -t ${DOCKER_IMAGE_NAME}:latest .
+                '''
+            }
+        }
+
+        stage('Deploy') {
+            steps {
+                echo "🚀 Deploying to ${params.ENVIRONMENT}"
+                sh '''
+                    echo "Deployment placeholder for ${ENVIRONMENT}"
+                '''
+            }
+        }
+    }
+
+    post {
+        always {
+            echo '🚀 Deploy pipeline finished.'
+        }
+        failure {
+            echo '❌ Deploy pipeline failed.'
+        }
+    }
+}

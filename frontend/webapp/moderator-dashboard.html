@@ -1,0 +1,345 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Moderator Dashboard | StudyQuest</title>
+  <style>
+    body {
+      margin: 0;
+      min-height: 100vh;
+      font-family: Inter, system-ui, sans-serif;
+      background: #f4f2eb;
+      color: #1f2c28;
+      padding: 24px;
+    }
+    .moderator-shell {
+      max-width: 1200px;
+      margin: 0 auto;
+    }
+    .header-row {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      margin-bottom: 28px;
+    }
+    .header-row h1 {
+      margin: 0;
+      font-size: 36px;
+    }
+    .nav-links {
+      display: flex;
+      gap: 16px;
+    }
+    .nav-link {
+      color: #2f665a;
+      text-decoration: none;
+      font-weight: 700;
+      font-size: 14px;
+    }
+    .tabs {
+      display: flex;
+      gap: 8px;
+      margin-bottom: 24px;
+      border-bottom: 2px solid #e4e6e2;
+    }
+    .tab-btn {
+      padding: 12px 20px;
+      border: none;
+      background: transparent;
+      color: #556157;
+      font-weight: 700;
+      cursor: pointer;
+      border-bottom: 3px solid transparent;
+      margin-bottom: -2px;
+    }
+    .tab-btn.active {
+      color: #2f665a;
+      border-bottom-color: #2f665a;
+    }
+    .tab-content {
+      display: none;
+    }
+    .tab-content.active {
+      display: block;
+    }
+    .card {
+      background: white;
+      border-radius: 18px;
+      padding: 24px;
+      box-shadow: 0 4px 16px rgba(31, 44, 40, 0.08);
+      margin-bottom: 20px;
+    }
+    .table-wrapper {
+      overflow-x: auto;
+    }
+    table {
+      width: 100%;
+      border-collapse: collapse;
+    }
+    th {
+      text-align: left;
+      padding: 12px;
+      border-bottom: 2px solid #e4e6e2;
+      font-weight: 700;
+      color: #3a4a3f;
+      font-size: 14px;
+    }
+    td {
+      padding: 16px 12px;
+      border-bottom: 1px solid #e4e6e2;
+      color: #4f5b51;
+      font-size: 14px;
+    }
+    tr:hover {
+      background: #faf9f4;
+    }
+    .badge {
+      display: inline-block;
+      padding: 4px 12px;
+      border-radius: 999px;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .badge-pending {
+      background: #fef3c7;
+      color: #92400e;
+    }
+    .badge-resolved {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    .badge-rejected {
+      background: #fee2e2;
+      color: #7f1d1d;
+    }
+    .action-btn {
+      padding: 6px 12px;
+      border: none;
+      border-radius: 6px;
+      cursor: pointer;
+      font-size: 12px;
+      font-weight: 700;
+    }
+    .btn-resolve {
+      background: #d1fae5;
+      color: #065f46;
+    }
+    .btn-reject {
+      background: #fee2e2;
+      color: #7f1d1d;
+    }
+    .loading {
+      text-align: center;
+      padding: 40px;
+      color: #556157;
+    }
+    .error {
+      text-align: center;
+      padding: 40px;
+      color: #c74343;
+      background: #fef1f1;
+      border-radius: 12px;
+    }
+    .access-denied {
+      background: #fef1f1;
+      border: 2px solid #c74343;
+      padding: 40px;
+      border-radius: 12px;
+      text-align: center;
+      color: #c74343;
+      font-weight: 700;
+    }
+  </style>
+</head>
+<body>
+  <div class="moderator-shell">
+    <div class="header-row">
+      <h1>⚖️ Moderator Dashboard</h1>
+      <div class="nav-links">
+        <a href="./index.html" class="nav-link">Home</a>
+        <a href="./profile.html" class="nav-link">Profile</a>
+      </div>
+    </div>
+
+    <div id="content" class="loading">Loading…</div>
+  </div>
+
+  <script>
+    const API_URL = 'http://127.0.0.1:5000/api';
+    const contentEl = document.getElementById('content');
+
+    function getModeratorRole() {
+      try {
+        const user = JSON.parse(localStorage.getItem('threadquest_auth_user') || '{}');
+        return user.role || 'user';
+      } catch {
+        return 'user';
+      }
+    }
+
+    async function loadReports() {
+      try {
+        const response = await fetch(`${API_URL}/reports`, {
+          headers: { 'x-user-role': getModeratorRole() }
+        });
+        
+        if (response.status === 403) {
+          return '<div class="access-denied">⛔ Moderator access required</div>';
+        }
+
+        if (!response.ok) throw new Error(`Failed to load reports: ${response.status}`);
+        const reports = await response.json();
+
+        if (!reports.length) {
+          return '<p style="text-align: center; color: #556157;">No reports yet.</p>';
+        }
+
+        let html = `<div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>ID</th>
+                <th>Reporter</th>
+                <th>Content Type</th>
+                <th>Reason</th>
+                <th>Status</th>
+                <th>Actions</th>
+              </tr>
+            </thead>
+            <tbody>`;
+
+        reports.forEach(report => {
+          const statusBadge = report.status === 'pending' ? 'badge-pending' : report.status === 'resolved' ? 'badge-resolved' : 'badge-rejected';
+          html += `<tr>
+            <td>#${report.id}</td>
+            <td>${report.reporterId}</td>
+            <td>${report.contentType}</td>
+            <td>${report.reason}</td>
+            <td><span class="badge ${statusBadge}">${report.status}</span></td>
+            <td>
+              ${report.status === 'pending' ? `
+                <button class="action-btn btn-resolve" onclick="resolveReport(${report.id})">Resolve</button>
+                <button class="action-btn btn-reject" onclick="rejectReport(${report.id})">Reject</button>
+              ` : '—'}
+            </td>
+          </tr>`;
+        });
+
+        html += `</tbody></table></div>`;
+        return html;
+      } catch (err) {
+        return `<div class="error">Failed to load reports: ${err.message}</div>`;
+      }
+    }
+
+    async function loadAuditLogs() {
+      try {
+        const response = await fetch(`${API_URL}/audit-logs`, {
+          headers: { 'x-user-role': getModeratorRole() }
+        });
+
+        if (response.status === 403) {
+          return '<div class="access-denied">⛔ Moderator access required</div>';
+        }
+
+        if (!response.ok) throw new Error(`Failed to load audit logs: ${response.status}`);
+        const logs = await response.json();
+
+        if (!logs.length) {
+          return '<p style="text-align: center; color: #556157;">No audit logs yet.</p>';
+        }
+
+        let html = `<div class="table-wrapper">
+          <table>
+            <thead>
+              <tr>
+                <th>Timestamp</th>
+                <th>Action</th>
+                <th>Actor</th>
+                <th>Target</th>
+                <th>Outcome</th>
+              </tr>
+            </thead>
+            <tbody>`;
+
+        logs.forEach(log => {
+          const date = new Date(log.createdAt).toLocaleDateString();
+          html += `<tr>
+            <td>${date}</td>
+            <td><strong>${log.action}</strong></td>
+            <td>${log.actor}</td>
+            <td>${log.target}</td>
+            <td><span class="badge" style="background: #f3f4f6; color: #1f2937;">${log.outcome}</span></td>
+          </tr>`;
+        });
+
+        html += `</tbody></table></div>`;
+        return html;
+      } catch (err) {
+        return `<div class="error">Failed to load audit logs: ${err.message}</div>`;
+      }
+    }
+
+    async function resolveReport(reportId) {
+      try {
+        const response = await fetch(`${API_URL}/reports/${reportId}/resolve`, {
+          method: 'DELETE',
+          headers: { 'x-user-role': getModeratorRole() }
+        });
+        if (!response.ok) throw new Error('Failed to resolve report');
+        alert('Report resolved');
+        location.reload();
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    async function rejectReport(reportId) {
+      try {
+        const response = await fetch(`${API_URL}/reports/${reportId}/reject`, {
+          method: 'DELETE',
+          headers: { 'x-user-role': getModeratorRole() }
+        });
+        if (!response.ok) throw new Error('Failed to reject report');
+        alert('Report rejected');
+        location.reload();
+      } catch (err) {
+        alert('Error: ' + err.message);
+      }
+    }
+
+    async function init() {
+      const reportsHTML = await loadReports();
+      const auditHTML = await loadAuditLogs();
+
+      contentEl.innerHTML = `
+        <div class="tabs">
+          <button class="tab-btn active" onclick="switchTab('reports')">Reports</button>
+          <button class="tab-btn" onclick="switchTab('audit')">Audit Logs</button>
+        </div>
+
+        <div id="reports" class="tab-content active card">
+          ${reportsHTML}
+        </div>
+
+        <div id="audit" class="tab-content card">
+          ${auditHTML}
+        </div>
+      `;
+    }
+
+    window.switchTab = function(tabName) {
+      document.querySelectorAll('.tab-content').forEach(el => el.classList.remove('active'));
+      document.querySelectorAll('.tab-btn').forEach(el => el.classList.remove('active'));
+      document.getElementById(tabName).classList.add('active');
+      event.target.classList.add('active');
+    };
+
+    window.resolveReport = resolveReport;
+    window.rejectReport = rejectReport;
+
+    init();
+  </script>
+</body>
+</html>

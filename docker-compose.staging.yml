@@ -1,0 +1,42 @@
+version: '3.8'
+
+services:
+  fastapi:
+    build:
+      context: ./backend/fastapi
+      dockerfile: Dockerfile
+    container_name: fastapi-staging
+    ports:
+      - "8000:8000"
+    networks:
+      - app-network
+
+  streamlit:
+    build:
+      context: ./frontend/streamlit
+      dockerfile: Dockerfile
+    container_name: streamlit-staging
+    ports:
+      - "8501:8501"
+    environment:
+      - API_BASE=http://fastapi:8000
+    networks:
+      - app-network
+
+  webapp:
+    build:
+      context: ./frontend/webapp
+      dockerfile: Dockerfile
+    container_name: studyquest-webapp
+    ports:
+      - "5173:5173"
+    environment:
+      - VITE_API_BASE=http://fastapi:8000/api
+    depends_on:
+      - fastapi
+    networks:
+      - app-network
+
+networks:
+  app-network:
+    driver: bridge
