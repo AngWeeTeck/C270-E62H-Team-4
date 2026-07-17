@@ -2,12 +2,16 @@ require("dotenv").config();
 const express = require("express");
 const cors = require("cors");
 const mongoose = require("mongoose");
+const path = require("path");
 
 const moderationRoutes = require("./routes/moderationRoutes");
 const authRoutes = require("./routes/auth");
 const threadsRoutes = require("./routes/threads");
+const repliesRoutes = require("./routes/replies");
 const leaderboardRoutes = require("./routes/leaderboard");
 const dashboardRoutes = require("./routes/dashboard");
+const playerStatsRoutes = require("./routes/playerStats");
+const uploadsRoutes = require("./routes/uploads");
 const { router: votesRoutes } = require("./routes/votes");
 const { resetModerationData } = require("./controllers/moderationController");
 
@@ -16,6 +20,7 @@ function createApp() {
 
     app.use(cors());
     app.use(express.json());
+    app.use("/uploads", express.static(path.join(__dirname, "uploads")));
 
     app.get('/', (req, res) => {
         res.json({ status: 'ok', message: 'Forum backend is running. Use /api/auth or /api.' });
@@ -23,9 +28,12 @@ function createApp() {
 
     app.use("/api/auth", authRoutes);
     app.use("/api/threads", threadsRoutes);
+    app.use("/api/threads", repliesRoutes);
     app.use("/api/leaderboard", leaderboardRoutes);
     app.use("/api/dashboard", dashboardRoutes);
     app.use("/api/votes", votesRoutes);
+    app.use("/api/player-stats", playerStatsRoutes);
+    app.use("/api", uploadsRoutes);
     app.use("/api", moderationRoutes);
 
     return app;
@@ -33,12 +41,16 @@ function createApp() {
 
 async function startServer() {
     const MONGODB_URI = process.env.MONGODB_URI || "mongodb://localhost:27017/forum_db";
-    try {
-        await mongoose.connect(MONGODB_URI);
-        console.log(`Connected to MongoDB at ${MONGODB_URI}`);
-    } catch (error) {
-        console.error("MongoDB connection failed:", error.message);
-        process.exit(1);
+    if (process.env.SKIP_DB === "true") {
+        console.log("Skipping MongoDB connection for smoke test");
+    } else {
+        try {
+            await mongoose.connect(MONGODB_URI);
+            console.log(`Connected to MongoDB at ${MONGODB_URI}`);
+        } catch (error) {
+            console.error("MongoDB connection failed:", error.message);
+            process.exit(1);
+        }
     }
 
     const app = createApp();

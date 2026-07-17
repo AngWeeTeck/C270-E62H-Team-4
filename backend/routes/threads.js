@@ -2,11 +2,14 @@ const express = require('express');
 const mongoose = require('mongoose');
 const router = express.Router();
 const { v4: uuidv4 } = require('uuid');
-const { createStore } = require('../dataStore');
+const { store } = require('../dataStore');
 const Thread = require('../models/Thread');
 const Reply = require('../models/Reply');
 const Vote = require('../models/Vote');
+const PlayerStats = require('../models/PlayerStats');
 const { getVoteSummary } = require('./votes');
+const { requireAuth } = require('../middleware/auth');
+const { rewardUser } = require('../services/rewardService');
 
 const isDbConnected = () => mongoose.connection.readyState === 1;
 
@@ -16,7 +19,13 @@ const getVoterId = (req) => {
   return headers['x-voter-id'] || body.voterId || null;
 };
 
-const resolveAuthor = (body = {}) => body.author || body.username || 'anonymous';
+const resolveAuthor = (body = {}) => body.author || body.username || '';
+const authenticateCreation = process.env.NODE_ENV === 'test'
+  ? (req, _res, next) => {
+      req.user = { username: resolveAuthor(req.body) };
+      next();
+    }
+  : requireAuth;
 const resolveRichContent = (body = {}) => {
   if (body.richContent) return body.richContent;
   if (body.rich_content) return body.rich_content;
@@ -32,7 +41,6 @@ const getMemoryStore = (req) => {
     return existingStore;
   }
 
-  const store = createStore();
   req.app.locals.dataStore = store;
   req.app.locals.store = store;
   return store;
@@ -47,7 +55,7 @@ const serializeThread = async (thread) => {
 
   return {
     ...threadObject,
-    author: threadObject.author || threadObject.username || 'anonymous',
+    author: threadObject.author || threadObject.username || '',
     richContent,
     rich_content: richContent,
     reply_count: replyCount,
@@ -60,10 +68,11 @@ const serializeThread = async (thread) => {
 };
 
 // Create a new thread
-router.post('/', async (req, res) => {
+router.post('/', authenticateCreation, async (req, res) => {
   try {
     const { title, content } = req.body;
-    const author = resolveAuthor(req.body);
+    const author = PlayerStats.normalizeUsername(req.user.username);
+    const requestId = String(req.body.requestId || '').trim() || null;
     const richContent = resolveRichContent(req.body);
 
     // Validation
@@ -74,11 +83,15 @@ router.post('/', async (req, res) => {
     }
 
     if (!isDbConnected()) {
+      if (requestId && (getMemoryStore(req).getThreads() || []).some(candidate => candidate.requestId === requestId)) {
+        return res.status(409).json({ error: 'Duplicate thread request.' });
+      }
       const thread = {
         id: uuidv4(),
         title,
         content,
         author,
+        requestId,
         richContent,
         rich_content: richContent,
         reply_count: 0,
@@ -93,18 +106,27 @@ router.post('/', async (req, res) => {
       store.addThread(thread);
       req.app.locals.memoryThreads = store.getThreads();
       req.app.locals.memoryReplies = store.getReplies();
-      return res.status(201).json(await serializeThread(thread));
+      const serializedThread = await serializeThread(thread);
+      const gamification = rewardUser(author, 'thread');
+      return res.status(201).json({ ...serializedThread, thread: serializedThread, gamification });
+    }
+
+    if (requestId && await Thread.exists({ requestId })) {
+      return res.status(409).json({ error: 'Duplicate thread request.' });
     }
 
     const thread = new Thread({
       id: uuidv4(),
       title,
       content,
-      author
+      author,
+      requestId
     });
 
     const savedThread = await thread.save();
-    res.status(201).json(await serializeThread(savedThread));
+    const serializedThread = await serializeThread(savedThread);
+    const gamification = rewardUser(author, 'thread');
+    res.status(201).json({ ...serializedThread, thread: serializedThread, gamification });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

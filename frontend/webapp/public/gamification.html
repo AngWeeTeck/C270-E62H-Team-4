@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Gamification Demo</title>
+  <link rel="stylesheet" href="/gamification.css">
+  <script>
+    if (!localStorage.getItem("threadquest_auth_token")) {
+      window.location.replace("/login.html");
+    }
+  </script>
+</head>
+<body>
+
+  <nav class="top-navbar">
+    <a class="nav-logo" href="/">🏆 StudyQuest</a>
+    <div class="nav-links">
+      <a class="nav-link" href="/dashboard.html">Dashboard</a>
+      <a class="nav-link" href="/leaderboard.html">Leaderboard</a>
+      <a class="nav-link" href="/">Thread Forum</a>
+      <a class="nav-link active" href="/gamification.html">Gamification</a>
+    </div>
+    <a class="nav-logout" id="logoutLink" href="/login.html">Logout</a>
+  </nav>
+
+  <div class="container">
+
+    <div id="daily-reward-card"></div>
+
+    <div class="main-layout">
+      <div id="profile-card"></div>
+
+      <div class="right-column">
+        <div id="shop-card"></div>
+        <div id="statistics-dashboard"></div>
+      </div>
+    </div>
+
+    <div class="demo-panel">
+      <div id="developer-panel"></div>
+    </div>
+  </div>
+
+  <script src="PlayerProfileCard.js"></script>
+  <script src="ShopPage.js"></script>
+  <script src="DailyRewardCard.js"></script>
+  <script src="DeveloperPanel.js"></script>
+  <script src="StatisticsDashboard.js"></script>
+  <script src="gamification.js"></script>
+</body>
+</html>

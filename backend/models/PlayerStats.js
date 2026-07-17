@@ -3,6 +3,10 @@ const path = require('path');
 
 const dataPath = path.join(__dirname, '../data/players.json');
 
+function normalizeUsername(username) {
+  return String(username || '').trim().toLowerCase();
+}
+
 function getDefaultPlayer(author) {
   return {
     author,
@@ -23,6 +27,9 @@ function getDefaultPlayer(author) {
     vouchers: [],
     achievements: [],
 
+    equippedTheme: 'default',
+    equippedFrame: 'default',
+    equippedBadge: 'default',
     appliedTheme: 'default',
     appliedFrame: 'default',
     appliedBadge: 'default',
@@ -45,14 +52,25 @@ class PlayerStats {
 
   static getAllPlayers() {
     const data = this.readData();
-    return Object.values(data.players);
+    const normalizedPlayers = new Map();
+    Object.values(data.players).forEach(player => {
+      const author = normalizeUsername(player.author);
+      if (author) normalizedPlayers.set(author, { ...player, author });
+    });
+    return [...normalizedPlayers.values()];
   }
 
   static getPlayer(author) {
+    author = normalizeUsername(author);
+    if (!author) throw new Error('Authenticated username is required.');
     const data = this.readData();
 
     if (!data.players[author]) {
-      data.players[author] = getDefaultPlayer(author);
+      const existingKey = Object.keys(data.players).find(key => normalizeUsername(key) === author);
+      data.players[author] = existingKey
+        ? { ...data.players[existingKey], author }
+        : getDefaultPlayer(author);
+      if (existingKey && existingKey !== author) delete data.players[existingKey];
       this.writeData(data);
     }
 
@@ -60,11 +78,17 @@ class PlayerStats {
   }
 
   static savePlayer(player) {
+    player.author = normalizeUsername(player.author);
+    if (!player.author) throw new Error('Authenticated username is required.');
     const data = this.readData();
+    Object.keys(data.players).forEach(key => {
+      if (key !== player.author && normalizeUsername(key) === player.author) delete data.players[key];
+    });
     data.players[player.author] = player;
     this.writeData(data);
     return player;
   }
 }
 
+PlayerStats.normalizeUsername = normalizeUsername;
 module.exports = PlayerStats;

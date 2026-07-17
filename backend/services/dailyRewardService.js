@@ -6,6 +6,10 @@ function getTodayDate() {
   return new Date().toISOString().split('T')[0];
 }
 
+function daysBetween(left, right) {
+  return Math.round((Date.parse(right) - Date.parse(left)) / 86400000);
+}
+
 function getDailyReward(streak) {
   const rewardDay = ((streak - 1) % 7) + 1;
 
@@ -30,7 +34,8 @@ function claimDailyReward(author) {
     throw new Error('Daily reward already claimed today.');
   }
 
-  player.dailyStreak = (player.dailyStreak || 0) + 1;
+  const gap = player.lastDailyRewardDate ? daysBetween(player.lastDailyRewardDate, today) : 1;
+  player.dailyStreak = gap === 1 ? (player.dailyStreak || 0) + 1 : 1;
 
   player.highestDailyStreak = Math.max(
     player.highestDailyStreak || 0,

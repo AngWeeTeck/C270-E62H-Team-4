@@ -5,6 +5,36 @@ const { checkAchievements, achievementCatalog } = require('../services/achieveme
 const PlayerStats = require('../models/PlayerStats');
 const { rewardUser, calculateLevel, getTitle, getRank } = require('../services/rewardService');
 const { claimDailyReward } = require('../services/dailyRewardService');
+const { requireAuth } = require('../middleware/auth');
+
+const SHOP_ITEMS = {
+  'Blue Profile Theme': 30,
+  'Gold Avatar Frame': 50,
+  'Special Title Badge': 80,
+  '10% RP Food Voucher': 250
+};
+
+const COSMETICS = {
+  'Blue Profile Theme': ['Theme', 'blue'],
+  '🌌 Galaxy Theme': ['Theme', 'galaxy'],
+  '🌸 Sakura Theme': ['Theme', 'sakura'],
+  'Gold Avatar Frame': ['Frame', 'gold'],
+  '🔥 Phoenix Frame': ['Frame', 'phoenix'],
+  'Special Title Badge': ['Badge', 'special'],
+  '💎 Diamond Badge': ['Badge', 'diamond'],
+  '👑 Crown Badge': ['Badge', 'crown']
+};
+
+const authenticatePlayer = process.env.NODE_ENV === 'test'
+  ? (_req, _res, next) => next()
+  : requireAuth;
+
+router.use('/:author', authenticatePlayer, (req, res, next) => {
+  if (process.env.NODE_ENV !== 'test' && PlayerStats.normalizeUsername(req.params.author) !== PlayerStats.normalizeUsername(req.user.username)) {
+    return res.status(403).json({ error: 'Player identity does not match the authenticated user.' });
+  }
+  next();
+});
 
 // Get all players
 router.get('/', (req, res) => {
@@ -31,11 +61,12 @@ router.post('/:author/reward', (req, res) => {
   try {
     const { action } = req.body;
 
-    const player = rewardUser(req.params.author, action);
+    const gamification = rewardUser(req.params.author, action);
 
     res.json({
       message: `${action} reward added`,
-      stats: player
+      stats: gamification.stats,
+      unlockedAchievements: gamification.unlockedAchievements
     });
 
   } catch (err) {
@@ -47,9 +78,18 @@ router.post('/:author/reward', (req, res) => {
 router.post('/:author/spend', (req, res) => {
   try {
 
-    const { item, amount } = req.body;
+    const { item } = req.body;
+    const amount = SHOP_ITEMS[item];
+
+    if (amount === undefined) {
+      return res.status(400).json({ error: 'Shop item not found.' });
+    }
 
     const player = PlayerStats.getPlayer(req.params.author);
+
+    if ((player.ownedItems || []).includes(item) || (player.vouchers || []).some(voucher => voucher.name === item && !voucher.redeemed)) {
+      return res.status(400).json({ error: 'Item is already owned.' });
+    }
 
     if (player.coins < amount) {
       return res.status(400).json({
@@ -106,7 +146,7 @@ router.post('/:author/apply', (req, res) => {
 
   try {
 
-    const { item } = req.body;
+    const { item, unequip = false } = req.body;
 
     const player = PlayerStats.getPlayer(req.params.author);
 
@@ -116,8 +156,19 @@ router.post('/:author/apply', (req, res) => {
       });
     }
 
-    let removed = false;
+    const cosmetic = COSMETICS[item];
+    if (!cosmetic) {
+      return res.status(400).json({ error: 'Unknown cosmetic.' });
+    }
 
+    const [category, value] = cosmetic;
+    const equippedField = `equipped${category}`;
+    const legacyField = `applied${category}`;
+    const removed = unequip || player[equippedField] === value || player[legacyField] === value;
+    player[equippedField] = removed ? 'default' : value;
+    player[legacyField] = player[equippedField];
+
+    /* switch retained only as historical mapping documentation
     switch (item) {
 
       case "Blue Profile Theme":
@@ -191,7 +242,7 @@ router.post('/:author/apply', (req, res) => {
           player.appliedBadge = "crown";
         }
         break;
-    }
+    } */
 
     PlayerStats.savePlayer(player);
 
@@ -229,6 +280,9 @@ router.post('/:author/reset', (req, res) => {
       studentsHelped: 0,
       ownedItems: [],
       achievements: [],
+      equippedTheme: 'default',
+      equippedFrame: 'default',
+      equippedBadge: 'default',
       appliedTheme: 'default',
       appliedFrame: 'default',
       appliedBadge: 'default',

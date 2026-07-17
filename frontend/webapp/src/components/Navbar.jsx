@@ -16,10 +16,17 @@ export default function Navbar() {
     }
   }, []);
 
+  const handleLogout = (event) => {
+    event.preventDefault();
+    window.localStorage.removeItem('threadquest_auth_token');
+    window.localStorage.removeItem('threadquest_auth_user');
+    window.location.href = '/login.html';
+  };
+
   return (
     <nav className="app-nav">
       <div className="nav-inner">
-        <a className="nav-brand" href="./index.html">StudyQuest</a>
+        <a className="nav-brand" href="/">StudyQuest</a>
 
         <button className="nav-toggle" aria-expanded={open} onClick={() => setOpen((v) => !v)}>
           <span className="sr-only">Toggle navigation</span>
@@ -27,13 +34,14 @@ export default function Navbar() {
         </button>
 
         <div className={`nav-links ${open ? 'open' : ''}`}>
-          <a href="./index.html" className="nav-link">Home</a>
-          <a href="./threads.html" className="nav-link">Threads</a>
+          <a href="/" className="nav-link">Home</a>
           <a href="./profile.html" className="nav-link">Profile</a>
           <a href="./leaderboard.html" className="nav-link">Leaderboard</a>
           <a href="./dashboard.html" className="nav-link">Dashboard</a>
+          <a href="/gamification.html" className="nav-link">Gamification</a>
           <a href="./moderator.html" className="nav-link">Moderator</a>
           {username && <span className="nav-badge">{`Hi, ${username}`}</span>}
+          <a href="/login.html" className="nav-link" onClick={handleLogout}>Logout</a>
         </div>
       </div>
     </nav>

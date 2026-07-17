@@ -1,7 +1,7 @@
 const express = require('express');
 const router = express.Router();
 const Vote = require('../models/Vote');
-const { createStore } = require('../dataStore');
+const { store } = require('../dataStore');
 
 const getVoterId = (req) => {
   const headers = req?.headers || {};
@@ -17,7 +17,6 @@ const getMemoryStore = (req) => {
     return existingStore;
   }
 
-  const store = createStore();
   req.app.locals.dataStore = store;
   req.app.locals.store = store;
   return store;
