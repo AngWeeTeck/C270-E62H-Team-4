@@ -14,7 +14,7 @@
           <a class="nav-link" href="threads.html">Forum</a>
           <a class="nav-link" href="gamification.html">Gamification</a>
         </div>
-        <a class="nav-link logout" href="login.html">Logout</a>
+        <a class="nav-link logout" href="/login.html">Logout</a>
     </nav>
 
     <h1>🛡️ Moderation System</h1>
@@ -35,6 +35,14 @@
     <h2>📋 Audit Logs</h2>
     <div id="audit-container"></div>
 
+    <script>
+      document.querySelector(".logout").addEventListener("click", event => {
+        event.preventDefault();
+        localStorage.removeItem("threadquest_auth_token");
+        localStorage.removeItem("threadquest_auth_user");
+        window.location.href = "/login.html";
+      });
+    </script>
     <script src="moderatorDashboard.js"></script>
 </body>
 </html>

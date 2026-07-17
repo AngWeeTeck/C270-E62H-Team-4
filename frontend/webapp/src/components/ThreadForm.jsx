@@ -2,6 +2,8 @@ import { useState } from 'react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { resolveUploadedUrl } from '../utils/upload';
+import { requireAuthenticatedUser } from '../utils/authUser';
+import { showAchievementToasts } from '../utils/achievementToast';
 
 const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 
@@ -19,7 +21,6 @@ const quillFormats = ['bold', 'italic', 'underline', 'list', 'bullet', 'code-blo
 export default function ThreadForm({ onCreate, setSelectedThread }) {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
-  const [username, setUsername] = useState('student1');
   const [embedUrl, setEmbedUrl] = useState('');
   const [embeds, setEmbeds] = useState([]);
   const [status, setStatus] = useState('');
@@ -129,6 +130,8 @@ export default function ThreadForm({ onCreate, setSelectedThread }) {
 
   const createThread = async (event) => {
     event.preventDefault();
+    const auth = requireAuthenticatedUser();
+    if (!auth) return;
 
     if (!title.trim() || !content.trim()) {
       setStatus('Please add a thread title and some content.');
@@ -137,28 +140,14 @@ export default function ThreadForm({ onCreate, setSelectedThread }) {
 
     setStatus('Creating thread...');
 
-    const fallbackThread = {
-      id: Date.now(),
-      title: title.trim(),
-      content: content.replace(/<[^>]+>/g, '').trim() || 'Shared from the forum',
-      author: username || 'student1',
-      reply_count: 0,
-      rich_content: {
-        html: content,
-        embeds
-      },
-      created_at: new Date().toISOString()
-    };
-
     try {
       const response = await fetch(`${API_BASE}/threads`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${auth.token}` },
         body: JSON.stringify({
+          requestId: window.crypto.randomUUID(),
           title: title.trim(),
           content,
-          author: username || 'student1',
-          username: username || 'student1',
           richContent: {
             html: content,
             embeds
@@ -175,20 +164,16 @@ export default function ThreadForm({ onCreate, setSelectedThread }) {
         throw new Error(data.detail || 'Unable to create thread');
       }
 
-      const createdThread = data.thread || data || fallbackThread;
+      const createdThread = data.thread || data;
       setTitle('');
       setContent('');
       setEmbeds([]);
       setStatus('Thread created successfully!');
       await onCreate(createdThread);
       setSelectedThread(createdThread);
+      showAchievementToasts(data.gamification?.unlockedAchievements || []);
     } catch (error) {
-      setTitle('');
-      setContent('');
-      setEmbeds([]);
-      setStatus('Thread posted locally.');
-      await onCreate(fallbackThread);
-      setSelectedThread(fallbackThread);
+      setStatus(error.message || 'Unable to create thread.');
     }
   };
 
@@ -245,10 +230,6 @@ export default function ThreadForm({ onCreate, setSelectedThread }) {
       </label>
       {uploading && <p className="status-text">Uploading file…</p>}
       {uploadError && <p className="status-text">{uploadError}</p>}
-      <label>
-        <span>Your name</span>
-        <input value={username} onChange={(e) => setUsername(e.target.value)} />
-      </label>
       <button className="pill-button" type="submit">✍️ Post thread</button>
       {status && <p className="status-text">{status}</p>}
     </form>

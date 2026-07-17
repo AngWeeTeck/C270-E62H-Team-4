@@ -2,6 +2,8 @@ import { useState } from 'react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { resolveUploadedUrl } from '../utils/upload';
+import { requireAuthenticatedUser } from '../utils/authUser';
+import { showAchievementToasts } from '../utils/achievementToast';
 
 const API_BASE = import.meta.env.VITE_API_BASE || '/api';
 
@@ -18,7 +20,6 @@ const quillFormats = ['bold', 'italic', 'underline', 'list', 'bullet', 'code-blo
 
 export default function ReplyForm({ threadId, onReplyCreated }) {
   const [content, setContent] = useState('');
-  const [username, setUsername] = useState('learner1');
   const [embedUrl, setEmbedUrl] = useState('');
   const [embeds, setEmbeds] = useState([]);
   const [status, setStatus] = useState('');
@@ -124,6 +125,8 @@ export default function ReplyForm({ threadId, onReplyCreated }) {
 
   const postReply = async (event) => {
     event.preventDefault();
+    const auth = requireAuthenticatedUser();
+    if (!auth) return;
 
     if (!content.trim()) {
       setStatus('Please write a reply before posting.');
@@ -132,25 +135,13 @@ export default function ReplyForm({ threadId, onReplyCreated }) {
 
     setStatus('Publishing reply...');
 
-    const fallbackReply = {
-      id: Date.now(),
-      author: username || 'You',
-      content,
-      created_at: new Date().toISOString(),
-      rich_content: {
-        html: content,
-        embeds
-      }
-    };
-
     try {
       const response = await fetch(`${API_BASE}/threads/${threadId}/replies`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
+        headers: { 'Content-Type': 'application/json', Authorization: `Bearer ${auth.token}` },
         body: JSON.stringify({
+          requestId: window.crypto.randomUUID(),
           content,
-          author: username || 'learner1',
-          username: username || 'learner1',
           richContent: {
             html: content,
             embeds
@@ -161,22 +152,29 @@ export default function ReplyForm({ threadId, onReplyCreated }) {
           }
         })
       });
-      const data = await response.json();
+      const contentType = response.headers.get('content-type') || '';
+      const data = contentType.includes('application/json')
+        ? await response.json()
+        : { error: await response.text() };
 
       if (!response.ok) {
-        throw new Error(data.detail || 'Unable to post reply');
+        throw new Error(
+          data.detail || data.error || `Unable to post reply (HTTP ${response.status})`
+        );
       }
 
-      const createdReply = data.reply || data || fallbackReply;
+      if (!contentType.includes('application/json')) {
+        throw new Error('Reply server returned an unexpected non-JSON response.');
+      }
+
+      const createdReply = data.reply || data;
       setContent('');
       setEmbeds([]);
       setStatus('Reply posted!');
       onReplyCreated?.(createdReply);
+      showAchievementToasts(data.gamification?.unlockedAchievements || []);
     } catch (error) {
-      setContent('');
-      setEmbeds([]);
-      setStatus('Reply posted locally.');
-      onReplyCreated?.(fallbackReply);
+      setStatus(error.message || 'Unable to post reply.');
     }
   };
 
@@ -225,10 +223,6 @@ export default function ReplyForm({ threadId, onReplyCreated }) {
       </label>
       {uploading && <p className="status-text">Uploading file…</p>}
       {uploadError && <p className="status-text">{uploadError}</p>}
-      <label>
-        <span>Your name</span>
-        <input value={username} onChange={(e) => setUsername(e.target.value)} />
-      </label>
       <button className="pill-button" type="submit">🤝 Post reply</button>
       {status && <p className="status-text">{status}</p>}
     </form>

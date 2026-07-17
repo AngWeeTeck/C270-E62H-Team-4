@@ -6,12 +6,21 @@ const { store } = require('../dataStore');
 const Reply = require('../models/Reply');
 const Thread = require('../models/Thread');
 const { getVoteSummary } = require('./votes');
+const PlayerStats = require('../models/PlayerStats');
+const { requireAuth } = require('../middleware/auth');
+const { rewardUser } = require('../services/rewardService');
 
 const isDbConnected = () => mongoose.connection.readyState === 1;
 
 const getVoterId = (req) => req.headers['x-voter-id'] || req.body.voterId || null;
 
-const resolveAuthor = (body = {}) => body.author || body.username || 'anonymous';
+const resolveAuthor = (body = {}) => body.author || body.username || '';
+const authenticateCreation = process.env.NODE_ENV === 'test'
+  ? (req, _res, next) => {
+      req.user = { username: resolveAuthor(req.body) };
+      next();
+    }
+  : requireAuth;
 const resolveRichContent = (body = {}) => {
   if (body.richContent) return body.richContent;
   if (body.rich_content) return body.rich_content;
@@ -45,7 +54,7 @@ const serializeReply = (reply) => {
 
   return {
     ...replyObject,
-    author: replyObject.author || replyObject.username || 'anonymous',
+    author: replyObject.author || replyObject.username || '',
     richContent,
     rich_content: richContent,
     score: replyObject.score ?? 0,
@@ -56,11 +65,12 @@ const serializeReply = (reply) => {
 };
 
 // Create reply to a thread
-router.post('/:threadId/replies', async (req, res) => {
+router.post('/:threadId/replies', authenticateCreation, async (req, res) => {
   try {
     const { threadId } = req.params;
     const { content } = req.body;
-    const author = resolveAuthor(req.body);
+    const author = PlayerStats.normalizeUsername(req.user.username);
+    const requestId = String(req.body.requestId || '').trim() || null;
     const richContent = resolveRichContent(req.body);
 
     // Validation
@@ -71,6 +81,9 @@ router.post('/:threadId/replies', async (req, res) => {
     }
 
     if (!isDbConnected()) {
+      if (requestId && (req.app.locals.memoryReplies || []).some(candidate => candidate.requestId === requestId)) {
+        return res.status(409).json({ error: 'Duplicate reply request.' });
+      }
       const thread = (req.app.locals.memoryThreads || []).find((candidate) => candidate.id === threadId);
       if (!thread) {
         return res.status(404).json({ error: 'Thread not found' });
@@ -81,6 +94,7 @@ router.post('/:threadId/replies', async (req, res) => {
         threadId,
         content,
         author,
+        requestId,
         richContent,
         rich_content: richContent,
         createdAt: new Date().toISOString(),
@@ -93,7 +107,9 @@ router.post('/:threadId/replies', async (req, res) => {
       thread.replies.push(reply.id);
       thread.reply_count = (thread.reply_count || 0) + 1;
       thread.replyCount = thread.reply_count;
-      return res.status(201).json(serializeReply(reply));
+      const serializedReply = serializeReply(reply);
+      const gamification = rewardUser(author, 'reply');
+      return res.status(201).json({ ...serializedReply, reply: serializedReply, gamification });
     }
 
     // Check if thread exists
@@ -102,12 +118,17 @@ router.post('/:threadId/replies', async (req, res) => {
       return res.status(404).json({ error: 'Thread not found' });
     }
 
+    if (requestId && await Reply.exists({ requestId })) {
+      return res.status(409).json({ error: 'Duplicate reply request.' });
+    }
+
     const reply = new Reply({
       id: uuidv4(),
       threadId,
       content,
       author,
-      richContent
+      richContent,
+      requestId
     });
 
     const savedReply = await reply.save();
@@ -117,7 +138,9 @@ router.post('/:threadId/replies', async (req, res) => {
     thread.replyCount = await Reply.countDocuments({ threadId });
     await thread.save();
 
-    res.status(201).json(serializeReply(savedReply));
+    const serializedReply = serializeReply(savedReply);
+    const gamification = rewardUser(author, 'reply');
+    res.status(201).json({ ...serializedReply, reply: serializedReply, gamification });
   } catch (error) {
     res.status(500).json({ error: error.message });
   }

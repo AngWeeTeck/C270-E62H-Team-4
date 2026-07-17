@@ -2,26 +2,22 @@ const PlayerStats = require('../models/PlayerStats');
 const { checkAchievements } = require('./achievementService');
 
 function calculateLevel(xp) {
-  if (xp >= 1000) return 5;
-  if (xp >= 600) return 4;
-  if (xp >= 300) return 3;
-  if (xp >= 100) return 2;
-  return 1;
+  return Math.floor(Math.max(0, Number(xp) || 0) / 100) + 1;
 }
 
 function getTitle(level) {
-  if (level === 5) return 'Code Master';
-  if (level === 4) return 'Quest Champion';
-  if (level === 3) return 'Helpful Contributor';
-  if (level === 2) return 'Freshman Explorer';
+  if (level >= 5) return 'Code Master';
+  if (level >= 4) return 'Quest Champion';
+  if (level >= 3) return 'Helpful Contributor';
+  if (level >= 2) return 'Freshman Explorer';
   return 'New Adventurer';
 }
 
 function getRank(level) {
-  if (level === 5) return "👑 Campus Legend";
-  if (level === 4) return "🎓 Mentor";
-  if (level === 3) return "⭐ Academic Knight";
-  if (level === 2) return "📚 Scholar";
+  if (level >= 5) return "👑 Campus Legend";
+  if (level >= 4) return "🎓 Mentor";
+  if (level >= 3) return "⭐ Academic Knight";
+  if (level >= 2) return "📚 Scholar";
   return "🌱 Freshman";
 }
 
@@ -40,7 +36,7 @@ function rewardUser(author, action) {
 
   const player = PlayerStats.getPlayer(author);
 
-  player.xp += reward.xp;
+  player.xp = (player.xp || 0) + reward.xp;
   player.coins += reward.coins;
 
   player.totalXpEarned = (player.totalXpEarned || 0) + reward.xp;
@@ -63,7 +59,11 @@ function rewardUser(author, action) {
   const unlockedAchievements = checkAchievements(player);
   player.lastUnlockedAchievements = unlockedAchievements;
 
-  return PlayerStats.savePlayer(player);
+  PlayerStats.savePlayer(player);
+  return {
+    stats: player,
+    unlockedAchievements
+  };
 }
 
 module.exports = {

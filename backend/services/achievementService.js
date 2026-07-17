@@ -46,10 +46,15 @@ const achievementCatalog = [
 }
 ];
 
-const SHOP_COSMETICS = [
+const ALL_COSMETICS = [
   'Blue Profile Theme',
   'Gold Avatar Frame',
-  'Special Title Badge'
+  'Special Title Badge',
+  '🌌 Galaxy Theme',
+  '🔥 Phoenix Frame',
+  '💎 Diamond Badge',
+  '🌸 Sakura Theme',
+  '👑 Crown Badge'
 ];
 
 function unlockAchievement(player, achievement, unlocked) {
@@ -101,12 +106,12 @@ function checkAchievements(player) {
   player.vouchers = player.vouchers || [];
 
   const unlocked = [];
-  const ownsAllShopCosmetics = SHOP_COSMETICS.every(item =>
+  const ownsAllCosmetics = ALL_COSMETICS.every(item =>
     player.ownedItems.includes(item)
   );
 
   achievementCatalog.forEach(achievement => {
-    if (achievement.id === 'first_steps' && player.xp > 0) {
+    if (achievement.id === 'first_steps' && ((player.studyQuestsCompleted || 0) >= 1 || (player.studentsHelped || 0) >= 1)) {
       unlockAchievement(player, achievement, unlocked);
     }
 
@@ -118,7 +123,7 @@ function checkAchievements(player) {
       unlockAchievement(player, achievement, unlocked);
     }
 
-    if (achievement.id === 'collector' && ownsAllShopCosmetics) {
+    if (achievement.id === 'collector' && ownsAllCosmetics) {
       unlockAchievement(player, achievement, unlocked);
     }
 
@@ -135,5 +140,6 @@ function checkAchievements(player) {
 
 module.exports = {
   achievementCatalog,
-  checkAchievements
+  checkAchievements,
+  ALL_COSMETICS
 };

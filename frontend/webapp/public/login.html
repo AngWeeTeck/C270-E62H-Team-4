@@ -1,0 +1,509 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="theme-color" content="#f4f2eb" />
+    <title>Thread Quest | Welcome</title>
+    <style>
+      :root {
+        color-scheme: light;
+        --ink: #1f2c28;
+        --muted: #74807b;
+        --line: #dce3df;
+        --green: #2f665a;
+        --green-dark: #214b42;
+        --lime: #91c85e;
+        --cream: #f4f2eb;
+        font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+      }
+
+      * { box-sizing: border-box; }
+
+      body {
+        min-height: 100vh;
+        margin: 0;
+        color: var(--ink);
+        background:
+          radial-gradient(circle at 10% 15%, rgba(255,255,255,.9), transparent 26rem),
+          linear-gradient(135deg, #e6e7df, #cdd2ca);
+      }
+
+      button, input { font: inherit; }
+      button, a { -webkit-tap-highlight-color: transparent; }
+
+      .page-shell {
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        padding: clamp(20px, 4vw, 64px);
+      }
+
+      .auth-card {
+        width: min(100%, 1040px);
+        min-height: 650px;
+        display: grid;
+        grid-template-columns: minmax(360px, .92fr) minmax(410px, 1.08fr);
+        overflow: hidden;
+        border: 1px solid rgba(31,44,40,.08);
+        border-radius: 26px;
+        background: #fff;
+        box-shadow: 0 28px 80px rgba(35, 48, 43, .2);
+      }
+
+      .form-side {
+        display: flex;
+        flex-direction: column;
+        padding: 38px clamp(34px, 5vw, 68px) 34px;
+      }
+
+      .brand {
+        display: inline-flex;
+        align-items: center;
+        gap: 10px;
+        width: fit-content;
+        color: var(--ink);
+        font-weight: 800;
+        letter-spacing: -.02em;
+      }
+
+      .brand-mark {
+        width: 36px;
+        height: 36px;
+        display: grid;
+        place-items: center;
+        border-radius: 11px;
+        background: linear-gradient(145deg, var(--green), var(--green-dark));
+        color: white;
+        box-shadow: 0 7px 18px rgba(47,102,90,.28);
+      }
+
+      .brand-mark svg { width: 22px; height: 22px; }
+
+      .form-wrap {
+        width: 100%;
+        max-width: 390px;
+        margin: auto;
+        padding: 38px 0 26px;
+      }
+
+      .eyebrow {
+        margin: 0 0 9px;
+        color: var(--green);
+        font-size: 12px;
+        font-weight: 800;
+        letter-spacing: .16em;
+        text-transform: uppercase;
+      }
+
+      h1 {
+        margin: 0;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: clamp(34px, 4vw, 48px);
+        font-weight: 500;
+        letter-spacing: -.045em;
+        line-height: 1;
+      }
+
+      .intro {
+        margin: 14px 0 30px;
+        color: var(--muted);
+        font-size: 14px;
+        line-height: 1.65;
+      }
+
+      .field { margin-bottom: 20px; }
+      .register-only { display: none; }
+      .register-only.visible { display: block; }
+
+      .field label {
+        display: block;
+        margin-bottom: 8px;
+        font-size: 12px;
+        font-weight: 750;
+        letter-spacing: .02em;
+      }
+
+      .input-wrap { position: relative; }
+
+      .input-icon {
+        position: absolute;
+        left: 14px;
+        top: 50%;
+        width: 18px;
+        height: 18px;
+        color: #87948e;
+        transform: translateY(-50%);
+        pointer-events: none;
+      }
+
+      input[type="email"], input[type="password"], input[type="text"] {
+        width: 100%;
+        height: 50px;
+        padding: 0 46px 0 43px;
+        border: 1px solid var(--line);
+        border-radius: 13px;
+        outline: 0;
+        background: #fbfcfb;
+        color: var(--ink);
+        font-size: 14px;
+        transition: border-color .2s, box-shadow .2s, background .2s;
+      }
+
+      input::placeholder { color: #a7b0ac; }
+      input:focus {
+        border-color: var(--green);
+        background: #fff;
+        box-shadow: 0 0 0 4px rgba(47,102,90,.1);
+      }
+
+      .toggle-password {
+        position: absolute;
+        top: 50%;
+        right: 10px;
+        display: grid;
+        place-items: center;
+        width: 34px;
+        height: 34px;
+        padding: 0;
+        border: 0;
+        border-radius: 8px;
+        color: #7e8b85;
+        background: transparent;
+        cursor: pointer;
+        transform: translateY(-50%);
+      }
+
+      .toggle-password:hover { background: #eef3f0; color: var(--green); }
+      .toggle-password svg { width: 18px; height: 18px; }
+
+      .form-options {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 16px;
+        margin: -2px 0 25px;
+        font-size: 12px;
+      }
+
+      .remember {
+        display: inline-flex;
+        align-items: center;
+        gap: 8px;
+        color: #64716c;
+        cursor: pointer;
+      }
+
+      .remember input { width: 16px; height: 16px; accent-color: var(--green); }
+
+      .text-button {
+        padding: 2px;
+        border: 0;
+        color: var(--ink);
+        background: transparent;
+        font-size: 12px;
+        font-weight: 750;
+        cursor: pointer;
+      }
+
+      .text-button:hover { color: var(--green); text-decoration: underline; }
+
+      .submit-btn {
+        position: relative;
+        width: 100%;
+        height: 52px;
+        overflow: hidden;
+        border: 0;
+        border-radius: 14px;
+        color: white;
+        background: linear-gradient(100deg, var(--green-dark), #3f7968 58%, var(--lime));
+        box-shadow: 0 12px 24px rgba(47,102,90,.22);
+        font-weight: 800;
+        letter-spacing: .01em;
+        cursor: pointer;
+        transition: transform .2s, box-shadow .2s;
+      }
+
+      .submit-btn:hover { transform: translateY(-1px); box-shadow: 0 16px 28px rgba(47,102,90,.28); }
+      .submit-btn:active { transform: translateY(0); }
+
+      .divider {
+        display: flex;
+        align-items: center;
+        gap: 13px;
+        margin: 25px 0 17px;
+        color: #99a39f;
+        font-size: 11px;
+      }
+
+      .divider::before, .divider::after { content: ""; flex: 1; height: 1px; background: #e7ebe8; }
+
+      .switch-copy {
+        margin: 23px 0 0;
+        color: var(--muted);
+        font-size: 12px;
+        text-align: center;
+      }
+
+      .switch-copy button { margin-left: 3px; color: var(--green); }
+
+      .legal { margin-top: auto; color: #9aa39f; font-size: 10px; line-height: 1.5; }
+
+      .visual-side {
+        position: relative;
+        min-height: 650px;
+        overflow: hidden;
+        background: #d9ddcf url("assets/botanical-login.png") center / cover no-repeat;
+      }
+
+      .visual-side::before {
+        content: "";
+        position: absolute;
+        inset: 0;
+        background: linear-gradient(to bottom, transparent 43%, rgba(11,37,30,.17) 66%, rgba(10,37,30,.9));
+      }
+
+      .visual-copy {
+        position: absolute;
+        z-index: 1;
+        left: clamp(30px, 5vw, 58px);
+        right: clamp(30px, 5vw, 58px);
+        bottom: 48px;
+        color: white;
+      }
+
+      .visual-tag {
+        display: inline-flex;
+        align-items: center;
+        gap: 7px;
+        margin-bottom: 17px;
+        color: #d8f1c7;
+        font-size: 11px;
+        font-weight: 800;
+        letter-spacing: .13em;
+        text-transform: uppercase;
+      }
+
+      .visual-tag::before { content: ""; width: 24px; height: 1px; background: #b5de8a; }
+
+      .visual-copy blockquote {
+        max-width: 440px;
+        margin: 0;
+        font-family: Georgia, "Times New Roman", serif;
+        font-size: clamp(27px, 3vw, 38px);
+        line-height: 1.18;
+        letter-spacing: -.025em;
+      }
+
+      .visual-copy p { margin: 17px 0 0; color: rgba(255,255,255,.72); font-size: 12px; }
+
+      .message {
+        display: none;
+        margin: -5px 0 17px;
+        padding: 10px 12px;
+        border-radius: 10px;
+        font-size: 12px;
+        line-height: 1.45;
+      }
+
+      .message.show { display: block; }
+      .message.error { color: #8e342c; background: #fff0ed; }
+      .message.success { color: #245d4f; background: #eaf6ef; }
+
+      .user-view {
+        display: none;
+        flex: 1;
+        flex-direction: column;
+        justify-content: center;
+        text-align: center;
+      }
+
+      .user-view.active { display: flex; }
+      .user-view .avatar {
+        width: 78px;
+        height: 78px;
+        display: grid;
+        place-items: center;
+        margin: 0 auto 23px;
+        border: 7px solid #eef4ef;
+        border-radius: 50%;
+        color: white;
+        background: linear-gradient(145deg, var(--green), var(--lime));
+        font-family: Georgia, serif;
+        font-size: 30px;
+        box-shadow: 0 12px 30px rgba(47,102,90,.2);
+      }
+
+      .user-view h1 { font-size: 40px; }
+      .user-email { margin: 12px 0 30px; color: var(--muted); font-size: 14px; }
+      .logout-btn { background: linear-gradient(100deg, #294e46, #3f7968); }
+      .back-link { margin-top: 16px; color: var(--muted); }
+
+      .modal-backdrop {
+        position: fixed;
+        z-index: 10;
+        inset: 0;
+        display: grid;
+        place-items: center;
+        padding: 24px;
+        background: rgba(20,30,26,.58);
+        backdrop-filter: blur(7px);
+        opacity: 0;
+        visibility: hidden;
+        transition: opacity .2s, visibility .2s;
+      }
+
+      .modal-backdrop.open { opacity: 1; visibility: visible; }
+
+      .modal {
+        width: min(100%, 390px);
+        padding: 30px;
+        border-radius: 22px;
+        background: #fff;
+        box-shadow: 0 24px 70px rgba(0,0,0,.26);
+        text-align: center;
+        transform: translateY(10px) scale(.98);
+        transition: transform .2s;
+      }
+
+      .modal-backdrop.open .modal { transform: translateY(0) scale(1); }
+      .modal-icon {
+        width: 54px;
+        height: 54px;
+        display: grid;
+        place-items: center;
+        margin: 0 auto 18px;
+        border-radius: 50%;
+        color: var(--green);
+        background: #eaf4ee;
+      }
+
+      .modal-icon svg { width: 25px; height: 25px; }
+      .modal h2 { margin: 0; font-family: Georgia, serif; font-size: 28px; font-weight: 500; }
+      .modal p { margin: 10px 0 24px; color: var(--muted); font-size: 13px; line-height: 1.55; }
+      .modal-actions { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+      .modal-actions button { height: 44px; border-radius: 12px; font-weight: 750; cursor: pointer; }
+      .cancel-btn { border: 1px solid var(--line); color: var(--ink); background: white; }
+      .confirm-btn { border: 0; color: white; background: var(--green-dark); }
+
+      @media (max-width: 800px) {
+        .page-shell { padding: 0; place-items: stretch; }
+        .auth-card { min-height: 100vh; grid-template-columns: 1fr; border: 0; border-radius: 0; }
+        .form-side { min-height: 100vh; padding: 28px clamp(22px, 8vw, 60px); }
+        .form-wrap { padding-top: 55px; }
+        .visual-side { display: none; }
+      }
+
+      @media (max-width: 420px) {
+        .form-wrap { padding-top: 40px; }
+        h1 { font-size: 37px; }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        *, *::before, *::after { scroll-behavior: auto !important; transition: none !important; }
+      }
+    </style>
+  </head>
+  <body>
+    <main class="page-shell">
+      <section class="auth-card" aria-label="Account access">
+        <div class="form-side">
+          <a class="brand" href="#" aria-label="Thread Quest home">
+            <span class="brand-mark" aria-hidden="true">
+              <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M19.8 4.2C12.2 4.3 6.6 7.1 5.1 13.8c-.5 2.2.6 4.6 2.8 5.5 2.2.9 4.8-.1 5.9-2.2 2.5-4.8 2.2-9.6 6-12.9Z"/><path d="M4 20c2.4-4.1 5.7-7.2 10.5-9.7"/></svg>
+            </span>
+            Thread Quest
+          </a>
+
+          <div id="auth-view" class="form-wrap">
+            <p class="eyebrow">Welcome back</p>
+            <h1 id="form-title">Log in</h1>
+            <p id="form-intro" class="intro">Continue the conversations that matter to you.</p>
+
+            <form id="auth-form" novalidate>
+              <div id="username-field" class="field register-only">
+                <label for="username">Username</label>
+                <div class="input-wrap">
+                  <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><circle cx="12" cy="8" r="4"/><path d="M4 21a8 8 0 0 1 16 0"/></svg>
+                  <input id="username" name="username" type="text" autocomplete="username" placeholder="Choose a username" minlength="3" maxlength="40" />
+                </div>
+              </div>
+
+              <div id="email-field" class="field">
+                <label for="email">Email address</label>
+                <div class="input-wrap">
+                  <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="3" y="5" width="18" height="14" rx="3"/><path d="m4 7 8 6 8-6"/></svg>
+                  <input id="email" name="email" type="email" autocomplete="email" placeholder="you@example.com" required />
+                </div>
+              </div>
+
+              <div class="field">
+                <label for="password">Password</label>
+                <div class="input-wrap">
+                  <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+                  <input id="password" name="password" type="password" autocomplete="current-password" placeholder="Enter your password" minlength="8" required />
+                  <button id="toggle-password" class="toggle-password" type="button" aria-label="Show password" aria-pressed="false">
+                    <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><path d="M2.5 12s3.5-6 9.5-6 9.5 6 9.5 6-3.5 6-9.5 6-9.5-6-9.5-6Z"/><circle cx="12" cy="12" r="2.5"/></svg>
+                  </button>
+                </div>
+              </div>
+
+              <div id="confirm-field" class="field register-only">
+                <label for="confirm-password">Confirm password</label>
+                <div class="input-wrap">
+                  <svg class="input-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" aria-hidden="true"><rect x="4" y="10" width="16" height="11" rx="3"/><path d="M8 10V7a4 4 0 0 1 8 0v3"/></svg>
+                  <input id="confirm-password" name="confirmPassword" type="password" autocomplete="new-password" placeholder="Repeat your password" minlength="8" />
+                </div>
+              </div>
+
+              <div class="form-options">
+                <label class="remember"><input id="remember" type="checkbox" /> Remember me</label>
+                <button id="forgot-btn" class="text-button" type="button">Forgot password?</button>
+              </div>
+
+              <div id="message" class="message" role="status" aria-live="polite"></div>
+              <button id="submit-btn" class="submit-btn" type="submit">Log in</button>
+            </form>
+
+            <p class="switch-copy">Don’t have an account?<button id="mode-switch" class="text-button" type="button">Create one</button></p>
+          </div>
+
+          <div id="user-view" class="user-view">
+            <div id="avatar" class="avatar" aria-hidden="true">J</div>
+            <p class="eyebrow">You’re signed in</p>
+            <h1>Welcome back.</h1>
+            <p id="user-email" class="user-email"></p>
+            <button id="logout-btn" class="submit-btn logout-btn" type="button">Log out</button>
+            <button id="stay-btn" class="text-button back-link" type="button">Stay signed in</button>
+          </div>
+
+          <p class="legal">By continuing, you agree to our Terms of Service and Privacy Policy.</p>
+        </div>
+
+        <aside class="visual-side" aria-label="Botanical workspace">
+          <div class="visual-copy">
+            <span class="visual-tag">Grow together</span>
+            <blockquote>Good conversations are where new ideas take root.</blockquote>
+            <p>A welcoming space for curious minds and thoughtful voices.</p>
+          </div>
+        </aside>
+      </section>
+    </main>
+
+    <div id="logout-modal" class="modal-backdrop" role="dialog" aria-modal="true" aria-labelledby="logout-title" aria-hidden="true">
+      <div class="modal">
+        <div class="modal-icon" aria-hidden="true">
+          <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8"><path d="M10 17l5-5-5-5M15 12H3"/><path d="M14 3h4a3 3 0 0 1 3 3v12a3 3 0 0 1-3 3h-4"/></svg>
+        </div>
+        <h2 id="logout-title">Log out?</h2>
+        <p>You’ll need to enter your details again to continue your conversations.</p>
+        <div class="modal-actions">
+          <button id="cancel-logout" class="cancel-btn" type="button">Cancel</button>
+          <button id="confirm-logout" class="confirm-btn" type="button">Yes, log out</button>
+        </div>
+      </div>
+    </div>
+
+    <script src="auth.js"></script>
+  </body>
+</html>

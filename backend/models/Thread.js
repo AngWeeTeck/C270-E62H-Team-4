@@ -22,6 +22,11 @@ const threadSchema = new Schema({
     type: String,
     required: true
   },
+  requestId: {
+    type: String,
+    unique: true,
+    sparse: true
+  },
   replies: [{
     type: Schema.Types.ObjectId,
     ref: 'Reply'

@@ -21,6 +21,11 @@ const replySchema = new Schema({
     type: String,
     required: true
   },
+  requestId: {
+    type: String,
+    unique: true,
+    sparse: true
+  },
   richContent: {
     text: String,
     formatting: {
