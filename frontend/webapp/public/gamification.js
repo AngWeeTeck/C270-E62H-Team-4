@@ -27,6 +27,7 @@ function authFetch(url, options = {}) {
 
 document.getElementById("logoutLink")?.addEventListener("click", event => {
   event.preventDefault();
+  event.stopPropagation();
   localStorage.removeItem("threadquest_auth_token");
   localStorage.removeItem("threadquest_auth_user");
   window.location.href = "/login.html";

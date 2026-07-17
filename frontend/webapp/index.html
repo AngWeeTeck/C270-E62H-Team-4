@@ -13,7 +13,7 @@
       // Otherwise, always send the user to the login page first.
       (function() {
         const params = new URLSearchParams(window.location.search);
-        const token = params.get('authToken');
+        const token = params.get('authToken') || params.get('token') || localStorage.getItem('threadquest_auth_token');
 
         if (token) {
           try {

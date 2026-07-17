@@ -92,6 +92,7 @@
         font-weight: 700;
       }
     </style>
+    <script src="/authGuard.js"></script>
   </head>
   <body>
     <main class="profile-shell">
@@ -143,7 +144,7 @@
       function clearSession() {
         localStorage.removeItem(TOKEN_KEY);
         localStorage.removeItem(USER_KEY);
-        window.location.href = '../../index.html';
+        window.location.href = '/login.html';
       }
 
       function getSavedUser() {
@@ -187,7 +188,11 @@
         }
       }
 
-      logoutBtn.addEventListener('click', clearSession);
+      logoutBtn?.addEventListener('click', (event) => {
+        event.preventDefault();
+        event.stopPropagation();
+        clearSession();
+      });
       loadProfile();
     </script>
   </body>

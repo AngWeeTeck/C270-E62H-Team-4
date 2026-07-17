@@ -6,24 +6,15 @@
     <link rel="stylesheet" href="style.css">
 </head>
 <body>
-        <script>
-            // Clear persisted auth so opening the static page requires sign-in
-            try {
-                localStorage.removeItem('threadquest_auth_token');
-                localStorage.removeItem('threadquest_auth_user');
-            } catch (e) {
-                console.warn('Failed to clear auth storage', e);
-            }
-        </script>
     <nav class="navbar">
           <a class="brand" href="dashboard.html">🧵 StudyQuest</a>
         <div class="nav-links">
           <a class="nav-link" href="dashboard.html">Dashboard</a>
           <a class="nav-link" href="leaderboard.html">Leaderboard</a>
-          <a class="nav-link" href="threads.html">Forum</a>
+          <a class="nav-link" href="/">Forum</a>
           <a class="nav-link" href="gamification.html">Gamification</a>
         </div>
-        <a class="nav-link logout" href="login.html">Logout</a>
+        <a class="nav-link logout" href="/login.html">Logout</a>
     </nav>
 
     <h1>🛡️ Moderation System</h1>
@@ -45,5 +36,6 @@
     <div id="audit-container"></div>
 
     <script src="moderatorDashboard.js"></script>
+    <script src="navbarAuth.js"></script>
 </body>
 </html>
