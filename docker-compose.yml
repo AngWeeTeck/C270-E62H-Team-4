@@ -3,7 +3,7 @@ version: '3.8'
 services:
   # MongoDB Database
   mongodb:
-    image: mongo:7.0-alpine
+    image: mongo:7.0
     container_name: forum-mongodb
     restart: unless-stopped
     ports:
@@ -49,11 +49,12 @@ services:
 
   # Jenkins CI
   jenkins:
-    image: jenkins/jenkins:lts-jdk17
+    build:
+      context: ./jenkins
+      dockerfile: Dockerfile
     container_name: jenkins-forum
     restart: unless-stopped
-    group_add:
-      - "989"
+    user: root
     ports:
       - "8080:8080"
       - "50000:50000"
@@ -62,7 +63,6 @@ services:
     volumes:
       - jenkins_home:/var/jenkins_home
       - /var/run/docker.sock:/var/run/docker.sock
-      - /usr/bin/docker:/usr/bin/docker
     networks:
       - forum-network
     healthcheck:
