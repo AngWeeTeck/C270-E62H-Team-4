@@ -161,13 +161,13 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 sh '''
-                    docker build --pull \
+                    docker build --pull --no-cache \
                         -t "${BACKEND_IMAGE}:${IMAGE_TAG}" \
                         -t "${BACKEND_IMAGE}:latest" \
                         .
 
                     docker run --rm "forum-backend:${BUILD_NUMBER}" \
-                        sh -c "apk info -v libcrypto3 libssl3 || true"
+                        sh -c "node --version; npm --version; npm root -g; npm ls -g tar --all || true; apk info -v libcrypto3 libssl3 || true"
                 '''
             }
         }
