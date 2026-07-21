@@ -251,9 +251,9 @@ pipeline {
                 sh '''
                     compose() {
                         if docker compose version >/dev/null 2>&1; then
-                            docker compose "$@"
+                            docker compose -f docker-compose.deploy.yml "$@"
                         else
-                            docker-compose "$@"
+                            docker-compose -f docker-compose.deploy.yml "$@"
                         fi
                     }
 
@@ -279,9 +279,9 @@ pipeline {
                 sh '''
                     compose() {
                         if docker compose version >/dev/null 2>&1; then
-                            docker compose "$@"
+                            docker compose -f docker-compose.deploy.yml "$@"
                         else
-                            docker-compose "$@"
+                            docker-compose -f docker-compose.deploy.yml "$@"
                         fi
                     }
 

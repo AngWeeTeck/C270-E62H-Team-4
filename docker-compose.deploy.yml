@@ -49,40 +49,11 @@ services:
       retries: 5
       start_period: 30s
 
-  # Jenkins CI
-  jenkins:
-    profiles:
-      - jenkins
-    build:
-      context: ./jenkins
-      dockerfile: Dockerfile
-    container_name: jenkins-forum
-    restart: unless-stopped
-    user: root
-    ports:
-      - "8080:8080"
-      - "50000:50000"
-    environment:
-      JENKINS_OPTS: "--httpPort=8080"
-    volumes:
-      - jenkins_home:/var/jenkins_home
-      - /var/run/docker.sock:/var/run/docker.sock
-    networks:
-      - forum-network
-    healthcheck:
-      test: ["CMD-SHELL", "curl -f http://localhost:8080/login || exit 1"]
-      interval: 30s
-      timeout: 5s
-      retries: 5
-
 volumes:
   mongodb_data:
     driver: local
   mongodb_config:
     driver: local
-  jenkins_home:
-    external: true
-    name: jenkins_home
 
 networks:
   forum-network:
