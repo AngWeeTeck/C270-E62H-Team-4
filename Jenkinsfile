@@ -60,8 +60,8 @@ pipeline {
             steps {
                 sh '''
                     docker run --rm \
-                        -v "$WORKSPACE:/workspace" \
-                        -w /workspace/backend \
+                        --volumes-from jenkins-forum \
+                        -w "$WORKSPACE/backend" \
                         ${NODE_IMAGE} \
                         npm ci
                 '''
@@ -72,8 +72,8 @@ pipeline {
             steps {
                 sh '''
                     docker run --rm \
-                        -v "$WORKSPACE:/workspace" \
-                        -w /workspace/backend \
+                        --volumes-from jenkins-forum \
+                        -w "$WORKSPACE/backend" \
                         -e CI=true \
                         ${NODE_IMAGE} \
                         npm run test:ci
@@ -99,8 +99,8 @@ pipeline {
             steps {
                 sh '''
                     docker run --rm \
-                        -v "$WORKSPACE:/workspace" \
-                        -w /workspace/frontend \
+                        --volumes-from jenkins-forum \
+                        -w "$WORKSPACE/frontend" \
                         ${NODE_IMAGE} \
                         npm ci
                 '''
@@ -111,8 +111,8 @@ pipeline {
             steps {
                 sh '''
                     docker run --rm \
-                        -v "$WORKSPACE:/workspace" \
-                        -w /workspace/frontend \
+                        --volumes-from jenkins-forum \
+                        -w "$WORKSPACE/frontend" \
                         -e CI=true \
                         ${NODE_IMAGE} \
                         npm run test:ci
@@ -144,14 +144,14 @@ pipeline {
             steps {
                 sh '''
                     docker run --rm \
-                        -v "$WORKSPACE:/workspace" \
-                        -w /workspace/backend \
+                        --volumes-from jenkins-forum \
+                        -w "$WORKSPACE/backend" \
                         ${NODE_IMAGE} \
                         npm audit --audit-level=high
 
                     docker run --rm \
-                        -v "$WORKSPACE:/workspace" \
-                        -w /workspace/frontend \
+                        --volumes-from jenkins-forum \
+                        -w "$WORKSPACE/frontend" \
                         ${NODE_IMAGE} \
                         npm audit --audit-level=high
                 '''
