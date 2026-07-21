@@ -161,10 +161,13 @@ pipeline {
         stage('Build Docker Image') {
             steps {
                 sh '''
-                    docker build \
-                        -t ${BACKEND_IMAGE}:${IMAGE_TAG} \
-                        -t ${BACKEND_IMAGE}:latest \
+                    docker build --pull \
+                        -t "${BACKEND_IMAGE}:${IMAGE_TAG}" \
+                        -t "${BACKEND_IMAGE}:latest" \
                         .
+
+                    docker run --rm "forum-backend:${BUILD_NUMBER}" \
+                        sh -c "apk info -v libcrypto3 libssl3 || true"
                 '''
             }
         }
@@ -174,8 +177,10 @@ pipeline {
                 sh '''
                     docker run --rm \
                         -v /var/run/docker.sock:/var/run/docker.sock \
+                        -v trivy-cache:/root/.cache/trivy \
                         --volumes-from jenkins-forum \
                         aquasec/trivy:latest image \
+                        --scanners vuln \
                         --format json \
                         --output "$WORKSPACE/trivy-image-report.json" \
                         --severity HIGH,CRITICAL \
@@ -184,8 +189,10 @@ pipeline {
 
                     docker run --rm \
                         -v /var/run/docker.sock:/var/run/docker.sock \
+                        -v trivy-cache:/root/.cache/trivy \
                         --volumes-from jenkins-forum \
                         aquasec/trivy:latest image \
+                        --scanners vuln \
                         --format table \
                         --output "$WORKSPACE/trivy-image-report.txt" \
                         --severity HIGH,CRITICAL \
