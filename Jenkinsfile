@@ -260,9 +260,43 @@ pipeline {
                     export IMAGE_TAG="${IMAGE_TAG}"
                     echo "Deploying tested image: ${BACKEND_IMAGE}:${IMAGE_TAG}"
 
-                    compose stop backend mongodb || true
-                    compose rm -f backend mongodb || true
-                    compose up -d mongodb backend
+                    if docker container inspect forum-mongodb >/dev/null 2>&1; then
+                        echo "Reusing existing MongoDB container: forum-mongodb"
+
+                        if [ "$(docker inspect -f '{{.State.Running}}' forum-mongodb)" != "true" ]; then
+                            echo "Starting existing MongoDB container"
+                            docker start forum-mongodb
+                        fi
+                    else
+                        echo "MongoDB container is missing; creating it"
+                        compose up -d mongodb
+                    fi
+
+                    echo "Waiting for MongoDB to become healthy..."
+                    for i in $(seq 1 30); do
+                        MONGODB_HEALTH=$(docker inspect -f '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' forum-mongodb)
+
+                        if [ "$MONGODB_HEALTH" = "healthy" ] || [ "$MONGODB_HEALTH" = "running" ]; then
+                            echo "MongoDB is ready"
+                            break
+                        fi
+
+                        if [ "$MONGODB_HEALTH" = "unhealthy" ]; then
+                            echo "MongoDB is unhealthy"
+                            exit 1
+                        fi
+
+                        if [ "$i" -eq 30 ]; then
+                            echo "MongoDB did not become ready"
+                            exit 1
+                        fi
+
+                        sleep 2
+                    done
+
+                    compose stop backend || true
+                    compose rm -f backend || true
+                    compose up -d --no-deps --force-recreate backend
                     compose ps
                 '''
             }
