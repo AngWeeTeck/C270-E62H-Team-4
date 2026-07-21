@@ -294,9 +294,12 @@ pipeline {
                         sleep 2
                     done
 
-                    compose stop backend || true
-                    compose rm -f backend || true
-                    compose up -d --no-deps --force-recreate backend
+                    if docker container inspect forum-backend >/dev/null 2>&1; then
+                        echo "Removing existing backend container: forum-backend"
+                        docker rm -f forum-backend || true
+                    fi
+
+                    compose up -d --no-deps --no-build backend
                     compose ps
                 '''
             }
