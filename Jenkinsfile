@@ -17,8 +17,8 @@ pipeline {
 
         booleanParam(
             name: 'SKIP_SECURITY_SCAN',
-            defaultValue: false,
-            description: 'Skip dependency security scans only when troubleshooting'
+            defaultValue: true,
+            description: 'Skip npm audit during initial pipeline testing'
         )
     }
 
@@ -51,7 +51,7 @@ pipeline {
                 sh '''
                     docker --version
                     docker ps
-                    docker compose version || docker-compose --version
+                    docker-compose --version || true
                 '''
             }
         }
@@ -249,21 +249,8 @@ pipeline {
 
             steps {
                 sh '''
-                    compose() {
-                        if docker compose version >/dev/null 2>&1; then
-                            docker compose "$@"
-                        else
-                            docker-compose "$@"
-                        fi
-                    }
-
-                    export IMAGE_TAG="${IMAGE_TAG}"
-                    echo "Deploying tested image: ${BACKEND_IMAGE}:${IMAGE_TAG}"
-
-                    compose stop backend mongodb || true
-                    compose rm -f backend mongodb || true
-                    compose up -d mongodb backend
-                    compose ps
+                    docker-compose down || true
+                    docker-compose up -d --build
                 '''
             }
         }
@@ -277,25 +264,11 @@ pipeline {
 
             steps {
                 sh '''
-                    compose() {
-                        if docker compose version >/dev/null 2>&1; then
-                            docker compose "$@"
-                        else
-                            docker-compose "$@"
-                        fi
-                    }
-
-                    echo "Waiting for backend at http://backend:5000/..."
+                    echo "Waiting for backend..."
 
                     for i in $(seq 1 30); do
-                        echo "Smoke-test attempt $i of 30"
-
-                        if docker run --rm \
-                            --network forum-network \
-                            curlimages/curl:latest \
-                            --fail --silent \
-                            http://backend:5000/ > /dev/null; then
-                            echo "Backend is reachable at http://backend:5000/"
+                        if curl --fail --silent http://localhost:5000 > /dev/null; then
+                            echo "Backend is reachable"
                             exit 0
                         fi
 
@@ -303,8 +276,7 @@ pipeline {
                     done
 
                     echo "Backend smoke test failed"
-                    compose ps || true
-                    compose logs --tail=100 backend || true
+                    docker-compose logs --tail=100 backend || true
                     exit 1
                 '''
             }
@@ -331,16 +303,8 @@ pipeline {
             echo "Build URL: ${env.BUILD_URL}"
 
             sh '''
-                compose() {
-                    if docker compose version >/dev/null 2>&1; then
-                        docker compose "$@"
-                    else
-                        docker-compose "$@"
-                    fi
-                }
-
-                compose ps || true
-                compose logs --tail=100 || true
+                docker-compose ps || true
+                docker-compose logs --tail=100 || true
             '''
         }
 

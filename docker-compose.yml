@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   # MongoDB Database
   mongodb:
@@ -11,8 +13,6 @@ services:
     volumes:
       - mongodb_data:/data/db
       - mongodb_config:/data/configdb
-    networks:
-      - forum-network
     healthcheck:
       test: echo 'db.runCommand("ping").ok' | mongosh localhost:27017/test --quiet
       interval: 10s
@@ -21,7 +21,6 @@ services:
 
   # Backend API Service
   backend:
-    image: forum-backend:${IMAGE_TAG:-latest}
     build:
       context: .
       dockerfile: Dockerfile
@@ -36,18 +35,17 @@ services:
     depends_on:
       mongodb:
         condition: service_healthy
+    volumes:
+      - ./backend/models:/app/backend/models
+      - ./backend/routes:/app/backend/routes
     networks:
       - forum-network
     healthcheck:
-      test:
-        [
-          "CMD-SHELL",
-          "node -e \"const http=require('http');const req=http.get('http://127.0.0.1:5000/',res=>{res.resume();process.exit(res.statusCode>=200&&res.statusCode<400?0:1)});req.setTimeout(5000,()=>{req.destroy();process.exit(1)});req.on('error',()=>process.exit(1));\""
-        ]
-      interval: 10s
-      timeout: 8s
-      retries: 5
-      start_period: 30s
+      test: ["CMD", "node", "-e", "require('http').get('http://localhost:5000/api/health', (r) => {if (r.statusCode !== 200) throw new Error(r.statusCode)})"]
+      interval: 30s
+      timeout: 3s
+      retries: 3
+      start_period: 5s
 
   # Jenkins CI
   jenkins:
@@ -84,5 +82,4 @@ volumes:
 
 networks:
   forum-network:
-    name: forum-network
     driver: bridge
