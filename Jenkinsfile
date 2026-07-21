@@ -23,7 +23,7 @@ pipeline {
     }
 
     environment {
-        NODE_IMAGE = 'node:18'
+        NODE_IMAGE = 'node:20'
         BACKEND_IMAGE = 'forum-backend'
         IMAGE_TAG = "${BUILD_NUMBER}"
     }
@@ -134,7 +134,7 @@ pipeline {
             }
         }
 
-        stage('Security Scan') {
+        stage('Dependency Security Scan') {
             when {
                 expression {
                     return !params.SKIP_SECURITY_SCAN
@@ -147,13 +147,13 @@ pipeline {
                         --volumes-from jenkins-forum \
                         -w "$WORKSPACE/backend" \
                         ${NODE_IMAGE} \
-                        npm audit --audit-level=high
+                        sh -c "npm audit --json > npm-audit-backend.json || true"
 
                     docker run --rm \
                         --volumes-from jenkins-forum \
                         -w "$WORKSPACE/frontend" \
                         ${NODE_IMAGE} \
-                        npm audit --audit-level=high
+                        sh -c "npm audit --json > npm-audit-frontend.json || true"
                 '''
             }
         }
@@ -165,6 +165,70 @@ pipeline {
                         -t ${BACKEND_IMAGE}:${IMAGE_TAG} \
                         -t ${BACKEND_IMAGE}:latest \
                         .
+                '''
+            }
+        }
+
+        stage('Trivy Image Scan') {
+            steps {
+                sh '''
+                    docker run --rm \
+                        -v /var/run/docker.sock:/var/run/docker.sock \
+                        --volumes-from jenkins-forum \
+                        aquasec/trivy:latest image \
+                        --format json \
+                        --output "$WORKSPACE/trivy-image-report.json" \
+                        --severity HIGH,CRITICAL \
+                        --ignore-unfixed \
+                        "forum-backend:${BUILD_NUMBER}" || true
+
+                    docker run --rm \
+                        -v /var/run/docker.sock:/var/run/docker.sock \
+                        --volumes-from jenkins-forum \
+                        aquasec/trivy:latest image \
+                        --format table \
+                        --output "$WORKSPACE/trivy-image-report.txt" \
+                        --severity HIGH,CRITICAL \
+                        --ignore-unfixed \
+                        "forum-backend:${BUILD_NUMBER}" || true
+                '''
+            }
+        }
+
+        stage('Generate SBOM') {
+            steps {
+                sh '''
+                    docker run --rm \
+                        -v /var/run/docker.sock:/var/run/docker.sock \
+                        --volumes-from jenkins-forum \
+                        anchore/syft:latest \
+                        "forum-backend:${BUILD_NUMBER}" \
+                        -o cyclonedx-json="$WORKSPACE/sbom.cdx.json"
+
+                    docker run --rm \
+                        -v /var/run/docker.sock:/var/run/docker.sock \
+                        --volumes-from jenkins-forum \
+                        anchore/syft:latest \
+                        "forum-backend:${BUILD_NUMBER}" \
+                        -o table="$WORKSPACE/sbom.txt"
+                '''
+            }
+        }
+
+        stage('Security Quality Gate') {
+            when {
+                expression {
+                    return !params.SKIP_SECURITY_SCAN
+                }
+            }
+
+            steps {
+                sh '''
+                    docker run --rm \
+                        --volumes-from jenkins-forum \
+                        -w "$WORKSPACE" \
+                        ${NODE_IMAGE} \
+                        node scripts/security-quality-gate.js
                 '''
             }
         }
@@ -239,7 +303,16 @@ pipeline {
 
         always {
             archiveArtifacts(
-                artifacts: '**/test-results.txt, **/junit.xml',
+                artifacts: '''backend/coverage/**,
+                    frontend/coverage/**,
+                    backend/npm-audit-backend.json,
+                    frontend/npm-audit-frontend.json,
+                    trivy-image-report.json,
+                    trivy-image-report.txt,
+                    sbom.cdx.json,
+                    sbom.txt,
+                    **/test-results.txt,
+                    **/junit.xml''',
                 allowEmptyArchive: true
             )
         }
