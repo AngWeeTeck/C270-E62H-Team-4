@@ -4,7 +4,7 @@ module.exports = {
     '**/*.js',
     '!node_modules/**',
     '!coverage/**',
-    '!jest.config.js'
+    '!jest.config.cjs'
   ],
   coverageThreshold: {
     global: {
@@ -14,6 +14,6 @@ module.exports = {
       statements: 0
     }
   },
-  testMatch: ['**/*.test.js'],
+  testMatch: ['<rootDir>/tests/**/*.test.js'],
   setupFiles: ['<rootDir>/tests/setup.js']
 };

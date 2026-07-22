@@ -1,0 +1,11 @@
+.git
+.github
+.vscode
+archive
+node_modules
+**/node_modules
+coverage
+**/coverage
+frontend
+*.log
+junit.xml

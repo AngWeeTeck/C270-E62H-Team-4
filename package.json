@@ -3,7 +3,7 @@
   "version": "1.0.0",
   "private": true,
   "scripts": {
-    "dev": "concurrently --kill-others-on-fail -n BACKEND,FRONTEND -c auto \"npm --prefix backend start\" \"npm --prefix frontend/webapp run dev\"",
+    "dev": "concurrently --kill-others-on-fail -n BACKEND,FRONTEND -c auto \"npm --prefix backend start\" \"npm --prefix frontend run dev\"",
     "start-all": "powershell -ExecutionPolicy Bypass -File ./start-dev.ps1"
   },
   "devDependencies": {

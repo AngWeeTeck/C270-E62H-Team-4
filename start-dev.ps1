@@ -4,7 +4,7 @@
 
 $root = Split-Path -Parent $MyInvocation.MyCommand.Definition
 $backend = Join-Path $root 'backend'
-$frontend = Join-Path $root 'frontend\webapp'
+$frontend = Join-Path $root 'frontend'
 
 Write-Host "Starting backend from $backend"
 if (-not (Test-Path (Join-Path $backend 'node_modules'))) {

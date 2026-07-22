@@ -77,8 +77,10 @@ services:
 
 volumes:
   mongodb_data:
+    name: mongodb_data
     driver: local
   mongodb_config:
+    name: mongodb_config
     driver: local
   jenkins_home:
     external: true

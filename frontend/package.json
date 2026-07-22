@@ -1,17 +1,35 @@
 {
-  "name": "forum-frontend",
+  "name": "studyquest-forum",
   "version": "1.0.0",
-  "description": "Forum and Rich Text Editor frontend",
-  "main": "index.js",
+  "private": true,
   "scripts": {
-    "test": "jest --coverage",
-    "test:ci": "jest --coverage --passWithNoTests --testPathPattern=tests/ --reporters=default --reporters=jest-junit",
-    "test:watch": "jest --watch"
+    "dev": "vite --host",
+    "build": "vite build",
+    "preview": "vite preview",
+    "test": "npm run test:legacy && npm run test:vite && npm run test:node",
+    "test:legacy": "jest --coverage --config jest.config.cjs",
+    "test:vite": "vitest run",
+    "test:node": "node --test src/components/ThreadDetail.replyCount.test.js src/utils/mediaEmbeds.test.js src/utils/replyCount.test.js",
+    "test:ci": "npm run test:legacy -- --ci --passWithNoTests --reporters=default --reporters=jest-junit && npm run test:vite -- --coverage && npm run test:node"
+  },
+  "dependencies": {
+    "quill": "^2.0.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "react-icons": "^4.11.0",
+    "react-quill": "^2.0.0"
   },
   "devDependencies": {
-    "jest": "^29.5.0",
-    "jest-junit": "^13.0.0",
+    "@testing-library/jest-dom": "^6.9.1",
+    "@testing-library/react": "^16.3.2",
+    "@vitejs/plugin-react": "^4.4.0",
+    "@vitest/coverage-v8": "^4.1.10",
+    "jest": "^29.7.0",
     "jest-environment-jsdom": "^30.4.1",
-    "jsdom": "^21.1.0"
+    "jest-junit": "^13.0.0",
+    "jsdom": "^29.1.1",
+    "playwright": "^1.61.1",
+    "vite": "^5.4.1",
+    "vitest": "^4.1.10"
   }
 }
