@@ -25,6 +25,7 @@ pipeline {
     environment {
         NODE_IMAGE = 'node:20'
         BACKEND_IMAGE = 'forum-backend'
+        DOCKERHUB_REPOSITORY = '25047232/forum-backend'
         IMAGE_TAG = "${BUILD_NUMBER}"
     }
 
@@ -164,6 +165,8 @@ pipeline {
                     docker build --pull --no-cache \
                         -t "${BACKEND_IMAGE}:${IMAGE_TAG}" \
                         -t "${BACKEND_IMAGE}:latest" \
+                        -t "${DOCKERHUB_REPOSITORY}:${IMAGE_TAG}" \
+                        -t "${DOCKERHUB_REPOSITORY}:latest" \
                         .
 
                     docker run --rm "forum-backend:${BUILD_NUMBER}" \
@@ -237,6 +240,30 @@ pipeline {
                         ${NODE_IMAGE} \
                         node scripts/security-quality-gate.js
                 '''
+            }
+        }
+
+        stage('Push to Docker Hub') {
+            steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-credentials',
+                        usernameVariable: 'DOCKERHUB_USERNAME',
+                        passwordVariable: 'DOCKERHUB_TOKEN'
+                    )
+                ]) {
+                    sh '''
+                        set +x
+                        echo "$DOCKERHUB_TOKEN" | docker login \
+                            --username "$DOCKERHUB_USERNAME" \
+                            --password-stdin
+                        set -x
+
+                        docker push "${DOCKERHUB_REPOSITORY}:${IMAGE_TAG}"
+                        docker push "${DOCKERHUB_REPOSITORY}:latest"
+                        docker logout
+                    '''
+                }
             }
         }
 
