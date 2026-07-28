@@ -1,6 +1,6 @@
 const fs = require('fs');
 const path = require('path');
-const authPageScript = fs.readFileSync(path.resolve(__dirname, '../../auth.js'), 'utf8');
+const authPageScript = fs.readFileSync(path.resolve(__dirname, '../public/auth.js'), 'utf8');
 
 function loadAuthPageScript() {
   window.eval(authPageScript);
