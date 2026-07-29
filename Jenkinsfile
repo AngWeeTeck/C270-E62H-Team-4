@@ -24,6 +24,7 @@ pipeline {
 
     environment {
         NODE_IMAGE = 'node:20'
+        TRIVY_IMAGE = 'aquasec/trivy:latest'
         BACKEND_IMAGE = 'forum-backend'
         DOCKERHUB_REPOSITORY = '25047232/forum-backend'
         IMAGE_TAG = "${BUILD_NUMBER}"
@@ -192,6 +193,48 @@ pipeline {
                         "forum-backend:${BUILD_NUMBER}" \
                         -o table="$WORKSPACE/sbom.txt"
                 '''
+            }
+        }
+
+        stage('Image Vulnerability Quality Gate') {
+            steps {
+                echo 'Scanning the built image for HIGH and CRITICAL CVEs...'
+
+                sh '''
+                    set -eu
+
+                    REPORT="$WORKSPACE/trivy-high-critical.txt"
+                    trap 'echo "Trivy HIGH/CRITICAL report:"; cat "$REPORT" 2>/dev/null || true' EXIT
+
+                    docker run --rm \
+                        -v /var/run/docker.sock:/var/run/docker.sock \
+                        --volumes-from jenkins-forum \
+                        "${TRIVY_IMAGE}" image \
+                        --scanners vuln \
+                        --severity HIGH,CRITICAL \
+                        --exit-code 1 \
+                        --no-progress \
+                        --format table \
+                        --output "$REPORT" \
+                        "${BACKEND_IMAGE}:${IMAGE_TAG}"
+                '''
+            }
+
+            post {
+                success {
+                    echo 'Quality Gate passed: no HIGH or CRITICAL CVEs were found.'
+                }
+
+                failure {
+                    echo 'Quality Gate failed: the image contains a HIGH or CRITICAL CVE.'
+                }
+
+                always {
+                    archiveArtifacts(
+                        artifacts: 'trivy-high-critical.txt',
+                        allowEmptyArchive: true
+                    )
+                }
             }
         }
 
@@ -447,6 +490,7 @@ pipeline {
                     frontend/npm-audit-frontend.json,
                     sbom.cdx.json,
                     sbom.txt,
+                    trivy-high-critical.txt,
                     **/test-results.txt,
                     **/junit.xml''',
                 allowEmptyArchive: true
