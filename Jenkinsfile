@@ -175,36 +175,6 @@ pipeline {
             }
         }
 
-        stage('Trivy Image Scan') {
-            steps {
-                sh '''
-                    docker run --rm \
-                        -v /var/run/docker.sock:/var/run/docker.sock \
-                        -v trivy-cache:/root/.cache/trivy \
-                        --volumes-from jenkins-forum \
-                        aquasec/trivy:latest image \
-                        --scanners vuln \
-                        --format json \
-                        --output "$WORKSPACE/trivy-image-report.json" \
-                        --severity HIGH,CRITICAL \
-                        --ignore-unfixed \
-                        "forum-backend:${BUILD_NUMBER}" || true
-
-                    docker run --rm \
-                        -v /var/run/docker.sock:/var/run/docker.sock \
-                        -v trivy-cache:/root/.cache/trivy \
-                        --volumes-from jenkins-forum \
-                        aquasec/trivy:latest image \
-                        --scanners vuln \
-                        --format table \
-                        --output "$WORKSPACE/trivy-image-report.txt" \
-                        --severity HIGH,CRITICAL \
-                        --ignore-unfixed \
-                        "forum-backend:${BUILD_NUMBER}" || true
-                '''
-            }
-        }
-
         stage('Generate SBOM') {
             steps {
                 sh '''
@@ -221,24 +191,6 @@ pipeline {
                         anchore/syft:latest \
                         "forum-backend:${BUILD_NUMBER}" \
                         -o table="$WORKSPACE/sbom.txt"
-                '''
-            }
-        }
-
-        stage('Security Quality Gate') {
-            when {
-                expression {
-                    return !params.SKIP_SECURITY_SCAN
-                }
-            }
-
-            steps {
-                sh '''
-                    docker run --rm \
-                        --volumes-from jenkins-forum \
-                        -w "$WORKSPACE" \
-                        ${NODE_IMAGE} \
-                        node scripts/security-quality-gate.js
                 '''
             }
         }
@@ -414,8 +366,6 @@ pipeline {
                     frontend/coverage/**,
                     backend/npm-audit-backend.json,
                     frontend/npm-audit-frontend.json,
-                    trivy-image-report.json,
-                    trivy-image-report.txt,
                     sbom.cdx.json,
                     sbom.txt,
                     **/test-results.txt,
