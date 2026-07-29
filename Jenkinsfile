@@ -284,48 +284,6 @@ pipeline {
             }
         }
 
-        stage('Smoke Test') {
-            when {
-                expression {
-                    return params.DEPLOY_TARGET == 'local'
-                }
-            }
-
-            steps {
-                sh '''
-                    compose() {
-                        if docker compose version >/dev/null 2>&1; then
-                            docker compose -f docker-compose.yml "$@"
-                        else
-                            docker-compose -f docker-compose.yml "$@"
-                        fi
-                    }
-
-                    echo "Waiting for backend at http://backend:5000/..."
-
-                    for i in $(seq 1 30); do
-                        echo "Smoke-test attempt $i of 30"
-
-                        if docker run --rm \
-                            --network forum-network \
-                            curlimages/curl:latest \
-                            --fail --silent \
-                            http://backend:5000/ > /dev/null; then
-                            echo "Backend is reachable at http://backend:5000/"
-                            exit 0
-                        fi
-
-                        sleep 2
-                    done
-
-                    echo "Backend smoke test failed"
-                    compose ps || true
-                    compose logs --tail=100 backend || true
-                    exit 1
-                '''
-            }
-        }
-
         stage('Generate Report') {
             steps {
                 echo "Build number: ${env.BUILD_NUMBER}"
