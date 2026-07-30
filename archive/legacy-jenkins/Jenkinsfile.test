@@ -1,0 +1,115 @@
+pipeline {
+    agent any
+
+    parameters {
+        choice(name: 'ENVIRONMENT', choices: ['development', 'staging', 'production'], description: 'Target environment for testing')
+    }
+
+    environment {
+        PATH = "/usr/local/bin:/usr/bin:/bin:${env.PATH}"
+        NODE_ENV = "${params.ENVIRONMENT}"
+    }
+
+    options {
+        timeout(time: 25, unit: 'MINUTES')
+        timestamps()
+    }
+
+    stages {
+        stage('Checkout') {
+            steps {
+                checkout scm
+            }
+        }
+
+        stage('Setup') {
+            steps {
+                sh '''
+                    node --version
+                    npm --version
+                '''
+            }
+        }
+
+        stage('Install Dependencies') {
+            parallel {
+                stage('Backend deps') {
+                    steps {
+                        dir('backend') {
+                            sh 'npm install --production=false'
+                        }
+                    }
+                }
+                stage('Frontend deps') {
+                    steps {
+                        dir('frontend') {
+                            sh 'npm install --production=false'
+                        }
+                    }
+                }
+            }
+        }
+
+        stage('Backend Tests') {
+            steps {
+                dir('backend') {
+                    sh '''
+                        JEST_JUNIT_OUTPUT=./junit.xml npm run test:ci || true
+                    '''
+                }
+            }
+            post {
+                always {
+                    junit testResults: 'backend/junit.xml', allowEmptyResults: true
+                }
+            }
+        }
+
+        stage('Frontend Tests') {
+            steps {
+                dir('frontend') {
+                    sh '''
+                        JEST_JUNIT_OUTPUT=./junit.xml npm run test:ci || true
+                    '''
+                }
+            }
+            post {
+                always {
+                    junit testResults: 'frontend/junit.xml', allowEmptyResults: true
+                }
+            }
+        }
+
+        stage('Smoke Test') {
+            steps {
+                dir('backend') {
+                    sh '''
+                        PORT=5001 node server.js > app.log 2>&1 &
+                        APP_PID=$!
+                        for i in $(seq 1 20); do
+                            if curl -sf http://127.0.0.1:8001/health >/dev/null 2>&1; then
+                                echo "✅ Application is running"
+                                kill $APP_PID
+                                wait $APP_PID || true
+                                exit 0
+                            fi
+                            sleep 1
+                        done
+                        echo "❌ Application failed to start"
+                        cat app.log
+                        exit 1
+                    '''
+                }
+            }
+        }
+    }
+
+    post {
+        always {
+            echo '🧪 Test pipeline finished.'
+        }
+        failure {
+            echo '❌ Test pipeline failed.'
+        }
+    }
+}

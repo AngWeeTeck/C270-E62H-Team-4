@@ -1,0 +1,24 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>StudyQuest Forum</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script>
+      (function () {
+        const params = new URLSearchParams(window.location.search);
+        const token = params.get('authToken') || params.get('token') || localStorage.getItem('threadquest_auth_token');
+        if (token) {
+          localStorage.setItem('threadquest_auth_token', token);
+          window.history.replaceState({}, '', window.location.pathname);
+          return;
+        }
+        window.location.replace('/login.html');
+      })();
+    </script>
+    <script type="module" src="/src/main.jsx"></script>
+  </body>
+</html>

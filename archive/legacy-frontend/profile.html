@@ -1,0 +1,88 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Profile | Thread Quest</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <nav class="navbar">
+    <a class="brand" href="dashboard.html">🧵 Thread Quest</a>
+    <a class="nav-link" href="dashboard.html">📊 Dashboard</a>
+    <a class="nav-link" href="leaderboard.html">🏆 Leaderboard</a>
+    <a class="nav-link" href="/">🧵 Forum</a>
+    <a class="nav-link" href="social.html">👥 Social</a>
+    <a class="nav-link logout" href="/login.html">Logout</a>
+  </nav>
+
+  <main class="page-main">
+    <section class="profile-card">
+      <h1>Your Profile</h1>
+      <p id="profile-info">Loading profile...</p>
+      <div class="profile-fields">
+        <div><strong>Username:</strong> <span id="profile-username">—</span></div>
+        <div><strong>Email:</strong> <span id="profile-email">—</span></div>
+        <div><strong>Joined:</strong> <span id="profile-joined">—</span></div>
+      </div>
+      <button id="profile-logout" class="btn-logout">Log out</button>
+    </section>
+  </main>
+
+  <script>
+    const TOKEN_KEY = 'threadquest_auth_token';
+    const USER_KEY = 'threadquest_auth_user';
+    const API_URL = window.location.protocol === 'file:' || window.location.hostname === 'localhost' ? 'http://127.0.0.1:5000/api' : '/api';
+
+    function getSavedUser() {
+      try {
+        return JSON.parse(localStorage.getItem(USER_KEY));
+      } catch {
+        return null;
+      }
+    }
+
+    function clearSession() {
+      localStorage.removeItem(TOKEN_KEY);
+      localStorage.removeItem(USER_KEY);
+      window.location.href = 'login.html';
+    }
+
+    async function fetchProfile() {
+      const token = localStorage.getItem(TOKEN_KEY);
+      const savedUser = getSavedUser();
+
+      if (!token || !savedUser) {
+        document.getElementById('profile-info').textContent = 'Not logged in. Please log in first.';
+        return;
+      }
+
+      document.getElementById('profile-info').textContent = 'Signed in as:';
+      document.getElementById('profile-username').textContent = savedUser.username || 'Unknown';
+      document.getElementById('profile-email').textContent = savedUser.email || 'Unknown';
+      document.getElementById('profile-joined').textContent = savedUser.createdAt ? new Date(savedUser.createdAt).toLocaleDateString() : 'N/A';
+
+      try {
+        const response = await fetch(`${API_URL}/auth/me`, {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`
+          }
+        });
+        if (!response.ok) throw new Error('Session invalid');
+        const data = await response.json();
+        const user = data.user;
+        document.getElementById('profile-username').textContent = user.username;
+        document.getElementById('profile-email').textContent = user.email;
+        document.getElementById('profile-joined').textContent = user.createdAt ? new Date(user.createdAt).toLocaleDateString() : 'N/A';
+      } catch (error) {
+        clearSession();
+      }
+    }
+
+    document.getElementById('profile-logout').addEventListener('click', clearSession);
+    fetchProfile();
+  </script>
+  <script src="navbarAuth.js"></script>
+</body>
+</html>
