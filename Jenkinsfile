@@ -150,8 +150,8 @@ pipeline {
                 sh 'docker run --privileged --rm -v ${WORKSPACE}:/report owasp/dependency-check:latest --project "Forum App" --scan /report'
             }
         }
-        }
-        stage('Build Docker Image') {
+
+stage('Build Docker Image') {
             steps {
                 sh '''
                     docker build --pull --no-cache \
