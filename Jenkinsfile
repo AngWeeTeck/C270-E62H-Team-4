@@ -23,7 +23,7 @@ pipeline {
     }
 
     environment {
-        NODE_IMAGE = 'node:18'
+        NODE_IMAGE = 'node:20'
         BACKEND_IMAGE = 'forum-backend'
         DOCKERHUB_REPOSITORY = '25047232/forum-backend'
         IMAGE_TAG = "${BUILD_NUMBER}"
@@ -96,27 +96,29 @@ pipeline {
             }
         }
 
-        stage('Frontend Dependencies') {
+        sstage('Frontend Dependencies') {
             steps {
                 sh '''
-                    docker run --rm \
-                        --volumes-from jenkins-forum \
-                        -w "$WORKSPACE/frontend" \
-                        ${NODE_IMAGE} \
-                        npm ci
-                '''
+                    JENKINS_UID=$(id -u)
+                    JENKINS_GID=$(id -g)
+
+                    docker run --rm -u ${JENKINS_UID}:${JENKINS_GID} \
+                        -v ${WORKSPACE}:/workspace -w /workspace/frontend \
+                        node:20 bash -lc "npm ci"
+                    '''
             }
         }
 
         stage('Frontend Tests') {
             steps {
                 sh '''
-                    docker run --rm \
-                        --volumes-from jenkins-forum \
-                        -w "$WORKSPACE/frontend" \
+                    JENKINS_UID=$(id -u)
+                    JENKINS_GID=$(id -g)
+
+                    docker run --rm -u ${JENKINS_UID}:${JENKINS_GID} \
+                        -v ${WORKSPACE}:/workspace -w /workspace/frontend \
                         -e CI=true \
-                        ${NODE_IMAGE} \
-                        npm run test:ci
+                        node:20 bash -lc "npm run test:ci"
                 '''
             }
 
@@ -149,7 +151,6 @@ pipeline {
             }
         }
         }
-
         stage('Build Docker Image') {
             steps {
                 sh '''
