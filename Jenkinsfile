@@ -96,7 +96,7 @@ pipeline {
             }
         }
 
-        sstage('Frontend Dependencies') {
+        stage('Frontend Dependencies') {
             steps {
                 sh '''
                     JENKINS_UID=$(id -u)
@@ -407,15 +407,14 @@ stage('Build Docker Image') {
         }
     }
 
-    post {
-    always {
-        // This forces the pipeline to fix the root permissions right before trying to delete
-        sh 'docker run --rm -v ${WORKSPACE}:/workspace -w /workspace alpine chown -R 1000:1000 .'
-        
-        // This will now succeed instead of throwing an error
-        deleteDir()
-    }
-}
+     post {
+        always {
+            // This forces the pipeline to fix the root permissions right before trying to delete
+            sh 'docker run --rm -v ${WORKSPACE}:/workspace -w /workspace alpine chown -R 1000:1000 .'
+            
+            // This will now succeed instead of throwing an error
+            deleteDir()
+        }
 
         failure {
             echo 'Pipeline failed. Review the first failed stage.'
