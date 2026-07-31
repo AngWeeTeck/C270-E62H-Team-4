@@ -98,13 +98,7 @@ pipeline {
 
         stage('Frontend Dependencies') {
             steps {
-                sh '''
-                    docker run --rm \
-                        --volumes-from jenkins-forum \
-                        -w "$WORKSPACE/frontend" \
-                        ${NODE_IMAGE} \
-                        npm ci
-                '''
+                sh 'docker run --rm --volumes-from jenkins-forum -w /var/jenkins_home/workspace/Forum-Application-Pipeline/frontend node:20 npm ci --force'
             }
         }
 
