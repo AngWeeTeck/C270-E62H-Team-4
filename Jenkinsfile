@@ -138,6 +138,7 @@ pipeline {
 
             steps {
                 sh '''
+                    # Standard npm audits
                     docker run --rm \
                         --volumes-from jenkins-forum \
                         -w "$WORKSPACE/backend" \
@@ -149,6 +150,18 @@ pipeline {
                         -w "$WORKSPACE/frontend" \
                         ${NODE_IMAGE} \
                         sh -c "npm audit --json > npm-audit-frontend.json || true"
+                    
+                    # INTEGRATION: OWASP Dependency-Check Scan with your odc-data volume
+                    mkdir -p "$WORKSPACE/odc-reports"
+                    docker run --rm \
+                        -v "$WORKSPACE:/src" \
+                        -v "$WORKSPACE/odc-reports:/report" \
+                        -v odc-data:/usr/share/dependency-check/data \
+                        owasp/dependency-check:latest \
+                        --scan /src \
+                        --format ALL \
+                        --out /report \
+                        --project "Forum-Application" || true
                 '''
             }
         }
@@ -165,6 +178,23 @@ pipeline {
 
                     docker run --rm "forum-backend:${BUILD_NUMBER}" \
                         sh -c "node --version; npm --version; npm root -g; npm ls -g tar --all || true; apk info -v libcrypto3 libssl3 || true"
+                '''
+            }
+        }
+
+        # INTEGRATION: Trivy Container Image Scan (Runs right after image creation, before pushing)
+        stage('Trivy Image Scan') {
+            when {
+                expression {
+                    return !params.SKIP_SECURITY_SCAN
+                }
+            }
+            steps {
+                sh '''
+                    docker run --rm \
+                        -v /var/run/docker.sock:/var/run/docker.sock \
+                        aquasec/trivy:latest \
+                        image --severity HIGH,CRITICAL "${BACKEND_IMAGE}:${IMAGE_TAG}"
                 '''
             }
         }
@@ -252,7 +282,7 @@ pipeline {
 
                                 if [ "$HEALTH_STATUS" = "healthy" ]; then
                                     return 0
-                                fi
+                               fi
 
                                 if [ "$HEALTH_STATUS" = "unhealthy" ]; then
                                     HEALTH_FAILURE_REASON="forum-backend became unhealthy"
@@ -432,13 +462,14 @@ pipeline {
 
         always {
             archiveArtifacts(
-                artifacts: '''backend/coverage/**,
-                    frontend/coverage/**,
-                    backend/npm-audit-backend.json,
-                    frontend/npm-audit-frontend.json,
-                    sbom.cdx.json,
-                    sbom.txt,
-                    **/test-results.txt,
+                artifacts: '''backend/coverage/**
+                    frontend/coverage/**
+                    backend/npm-audit-backend.json
+                    frontend/npm-audit-frontend.json
+                    odc-reports/**
+                    sbom.cdx.json
+                    sbom.txt
+                    **/test-results.txt
                     **/junit.xml''',
                 allowEmptyArchive: true
             )
