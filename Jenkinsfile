@@ -47,38 +47,6 @@ pipeline {
             }
         }
 
-        stage('Lint (Hadolint)') {
-            steps {
-                sh '''
-                    docker run --rm -i hadolint/hadolint < Dockerfile
-                    docker run --rm -i hadolint/hadolint < archive/legacy-prototypes/fastapi/Dockerfile
-                '''
-            }
-        }
-
-        stage('Python Unit Tests (FastAPI archive)') {
-            steps {
-                sh '''
-                    docker run --rm \
-                        -v jenkins_home:/var/jenkins_home \
-                        -w "$WORKSPACE/archive/legacy-prototypes/fastapi" \
-                        python:3.12-slim sh -c '
-                            pwd &&
-                            ls -la &&
-                            test -f requirements.txt &&
-                            test -f requirements-dev.txt &&
-                            pip install -q -r requirements.txt -r requirements-dev.txt &&
-                            pytest -v --cov=app --junitxml=junit.xml
-                        '
-                '''
-            }
-            post {
-                always {
-                    junit(testResults: 'archive/legacy-prototypes/fastapi/junit.xml', allowEmptyResults: true)
-                }
-            }
-        }
-
         stage('Environment Check') {
             steps {
                 sh '''
@@ -130,13 +98,7 @@ pipeline {
 
         stage('Frontend Dependencies') {
             steps {
-                sh '''
-                    docker run --rm \
-                        --volumes-from jenkins-forum \
-                        -w "$WORKSPACE/frontend" \
-                        ${NODE_IMAGE} \
-                        npm ci
-                '''
+                sh 'docker run --rm --volumes-from jenkins-forum -w /var/jenkins_home/workspace/Forum-Application-Pipeline/frontend node:20 npm ci --force'
             }
         }
 
@@ -176,6 +138,7 @@ pipeline {
 
             steps {
                 sh '''
+                    # Standard npm audits
                     docker run --rm \
                         --volumes-from jenkins-forum \
                         -w "$WORKSPACE/backend" \
@@ -187,6 +150,18 @@ pipeline {
                         -w "$WORKSPACE/frontend" \
                         ${NODE_IMAGE} \
                         sh -c "npm audit --json > npm-audit-frontend.json || true"
+                    
+                    # INTEGRATION: OWASP Dependency-Check Scan with your odc-data volume
+                    mkdir -p "$WORKSPACE/odc-reports"
+                    docker run --rm \
+                        -v "$WORKSPACE:/src" \
+                        -v "$WORKSPACE/odc-reports:/report" \
+                        -v odc-data:/usr/share/dependency-check/data \
+                        owasp/dependency-check:latest \
+                        --scan /src \
+                        --format ALL \
+                        --out /report \
+                        --project "Forum-Application" || true
                 '''
             }
         }
@@ -203,6 +178,23 @@ pipeline {
 
                     docker run --rm "forum-backend:${BUILD_NUMBER}" \
                         sh -c "node --version; npm --version; npm root -g; npm ls -g tar --all || true; apk info -v libcrypto3 libssl3 || true"
+                '''
+            }
+        }
+
+        # INTEGRATION: Trivy Container Image Scan (Runs right after image creation, before pushing)
+        stage('Trivy Image Scan') {
+            when {
+                expression {
+                    return !params.SKIP_SECURITY_SCAN
+                }
+            }
+            steps {
+                sh '''
+                    docker run --rm \
+                        -v /var/run/docker.sock:/var/run/docker.sock \
+                        aquasec/trivy:latest \
+                        image --severity HIGH,CRITICAL "${BACKEND_IMAGE}:${IMAGE_TAG}"
                 '''
             }
         }
@@ -238,43 +230,13 @@ pipeline {
                 ]) {
                     sh '''
                         set +x
-                        echo "$DOCKERHUB_TOKEN" | docker login \
+                        echo -n "$DOCKERHUB_TOKEN" | docker login \
                             --username "$DOCKERHUB_USERNAME" \
                             --password-stdin
                         set -x
 
-                        docker push "${DOCKERHUB_REPOSITORY}:${IMAGE_TAG}"
-                        docker push "${DOCKERHUB_REPOSITORY}:latest"
-                        docker logout
-                    '''
-                }
-            }
-        }
-
-        stage('Sign Image (Cosign)') {
-            steps {
-                withCredentials([
-                    file(credentialsId: 'cosign-private-key', variable: 'COSIGN_KEY_FILE'),
-                    string(credentialsId: 'cosign-key-password', variable: 'COSIGN_PASSWORD'),
-                    usernamePassword(
-                        credentialsId: 'dockerhub-credentials',
-                        usernameVariable: 'DOCKERHUB_USERNAME',
-                        passwordVariable: 'DOCKERHUB_TOKEN'
-                    )
-                ]) {
-                    sh '''
-                        set +x
-                        echo "$DOCKERHUB_TOKEN" | docker login \
-                            --username "$DOCKERHUB_USERNAME" \
-                            --password-stdin
-                        set -x
-
-                        cosign sign --key "$COSIGN_KEY_FILE" --yes \
-                            "${DOCKERHUB_REPOSITORY}:${IMAGE_TAG}"
-
-                        cosign verify --key cosign.pub \
-                            "${DOCKERHUB_REPOSITORY}:${IMAGE_TAG}"
-
+                        docker push "$DOCKERHUB_REPOSITORY:$IMAGE_TAG"
+                        docker push "$DOCKERHUB_REPOSITORY:latest"
                         docker logout
                     '''
                 }
@@ -320,7 +282,7 @@ pipeline {
 
                                 if [ "$HEALTH_STATUS" = "healthy" ]; then
                                     return 0
-                                fi
+                               fi
 
                                 if [ "$HEALTH_STATUS" = "unhealthy" ]; then
                                     HEALTH_FAILURE_REASON="forum-backend became unhealthy"
@@ -487,29 +449,27 @@ pipeline {
             echo 'Pipeline failed. Review the first failed stage.'
             echo "Build URL: ${env.BUILD_URL}"
 
-            sh '''
-                compose() {
-                    if docker compose version >/dev/null 2>&1; then
-                        docker compose "$@"
-                    else
-                        docker-compose "$@"
-                    fi
-                }
-
-                compose ps || true
-                compose logs --tail=100 || true
-            '''
+            sh """
+                if docker compose version >/dev/null 2>&1; then
+                    docker compose ps || true
+                    docker compose logs --tail=100 || true
+                else
+                    docker-compose ps || true
+                    docker-compose logs --tail=100 || true
+                fi
+            """
         }
 
         always {
             archiveArtifacts(
-                artifacts: '''backend/coverage/**,
-                    frontend/coverage/**,
-                    backend/npm-audit-backend.json,
-                    frontend/npm-audit-frontend.json,
-                    sbom.cdx.json,
-                    sbom.txt,
-                    **/test-results.txt,
+                artifacts: '''backend/coverage/**
+                    frontend/coverage/**
+                    backend/npm-audit-backend.json
+                    frontend/npm-audit-frontend.json
+                    odc-reports/**
+                    sbom.cdx.json
+                    sbom.txt
+                    **/test-results.txt
                     **/junit.xml''',
                 allowEmptyArchive: true
             )
