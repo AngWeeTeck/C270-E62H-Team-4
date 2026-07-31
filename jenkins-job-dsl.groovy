@@ -1,3 +1,5 @@
+def branchName = binding.hasVariable('PIPELINE_BRANCH') ? PIPELINE_BRANCH : 'Faris_shitline_test'
+
 job {
     name 'Forum-Application-Pipeline'
     description 'CI/CD Pipeline for Forum Application with Thread and Reply System'
@@ -9,7 +11,7 @@ job {
                 url 'https://github.com/AngWeeTeck/C270-E62H-Team-4.git'
                 credentials 'github-credentials'
             }
-            branches '*/WeeTeck02'
+            branches '*/Faris_shitline_test'
             wipeOutWorkspace true
         }
     }
