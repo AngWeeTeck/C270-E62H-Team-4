@@ -14,3 +14,5 @@ junit.xml
 .DS_Store
 .vscode/
 dist/
+
+.scannerwork/
