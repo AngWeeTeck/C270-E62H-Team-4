@@ -12,6 +12,7 @@
   },
   "devDependencies": {
     "jest": "^29.7.0",
+    "newman": "^6.2.2",
     "supertest": "^6.3.3"
   },
   "name": "backend",
