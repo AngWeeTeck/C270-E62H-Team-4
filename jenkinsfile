@@ -506,6 +506,27 @@ pipeline {
             }
         }
 
+        stage('Smoke Test') {
+            when {
+                expression {
+                    return params.DEPLOY_TARGET == 'local'
+                }
+            }
+
+            steps {
+                sh '''
+                    echo "Running Thread Quest smoke test..."
+
+                    docker run --rm \
+                        --network forum-network \
+                        -v "$WORKSPACE/smoke.test.json:/etc/newman/smoke.test.json:ro" \
+                        postman/newman:6-alpine \
+                        run smoke.test.json \
+                        --env-var baseUrl=http://forum-backend:5000
+                '''
+            }
+        }
+
         stage('Generate Report') {
             steps {
                 echo "Build number: ${env.BUILD_NUMBER}"
