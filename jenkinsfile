@@ -47,6 +47,38 @@ pipeline {
             }
         }
 
+        stage('Lint (Hadolint)') {
+            steps {
+                sh '''
+                    docker run --rm -i hadolint/hadolint < Dockerfile
+                    docker run --rm -i hadolint/hadolint < archive/legacy-prototypes/fastapi/Dockerfile
+                '''
+            }
+        }
+
+        stage('Python Unit Tests (FastAPI archive)') {
+            steps {
+                sh '''
+                    docker run --rm \
+                        -v jenkins_home:/var/jenkins_home \
+                        -w "$WORKSPACE/archive/legacy-prototypes/fastapi" \
+                        python:3.12-slim sh -c '
+                            pwd &&
+                            ls -la &&
+                            test -f requirements.txt &&
+                            test -f requirements-dev.txt &&
+                            pip install -q -r requirements.txt -r requirements-dev.txt &&
+                            pytest -v --cov=app --junitxml=junit.xml
+                        '
+                '''
+            }
+            post {
+                always {
+                    junit(testResults: 'archive/legacy-prototypes/fastapi/junit.xml', allowEmptyResults: true)
+                }
+            }
+        }
+
         stage('Environment Check') {
             steps {
                 sh '''
@@ -135,7 +167,28 @@ pipeline {
             }
         }
 
-        stage('Dependency Security Scan') {
+        stage('SonarQube Analysis') {
+            steps {
+                script {
+                    def scannerHome = tool 'SonarScanner'
+
+                    withSonarQubeEnv('SonarQube') {
+                        sh "${scannerHome}/bin/sonar-scanner"
+                    }
+                }
+            }
+        }
+
+        stage('Quality Gate') {
+            steps {
+                timeout(time: 5, unit: 'MINUTES') {
+                    waitForQualityGate abortPipeline: true
+                }
+            }
+        }
+
+
+        stage('Dependency & Security Scan') {
             when {
                 expression {
                     return !params.SKIP_SECURITY_SCAN
@@ -155,6 +208,9 @@ pipeline {
                         -w "$WORKSPACE/frontend" \
                         ${NODE_IMAGE} \
                         sh -c "npm audit --json > npm-audit-frontend.json || true"
+                    
+                    echo "Running Trivy File System Security Scan..."
+                    docker run --rm -v "$WORKSPACE:/apps" aquasec/trivy:latest fs /apps || true
                 '''
             }
         }
@@ -171,6 +227,21 @@ pipeline {
 
                     docker run --rm "forum-backend:${BUILD_NUMBER}" \
                         sh -c "node --version; npm --version; npm root -g; npm ls -g tar --all || true; apk info -v libcrypto3 libssl3 || true"
+                '''
+            }
+        }
+
+        stage('Trivy Image Scan') {
+            when {
+                expression {
+                    return !params.SKIP_SECURITY_SCAN
+                }
+            }
+            steps {
+                sh '''
+                    echo "Running Trivy Container Image Scan..."
+                    docker run --rm -v /var/run/docker.sock:/var/run/docker.sock \
+                        aquasec/trivy:latest image --severity HIGH,CRITICAL "${BACKEND_IMAGE}:${IMAGE_TAG}" || true
                 '''
             }
         }
@@ -213,6 +284,36 @@ pipeline {
 
                         docker push "${DOCKERHUB_REPOSITORY}:${IMAGE_TAG}"
                         docker push "${DOCKERHUB_REPOSITORY}:latest"
+                        docker logout
+                    '''
+                }
+            }
+        }
+
+        stage('Sign Image (Cosign)') {
+            steps {
+                withCredentials([
+                    file(credentialsId: 'cosign-private-key', variable: 'COSIGN_KEY_FILE'),
+                    string(credentialsId: 'cosign-key-password', variable: 'COSIGN_PASSWORD'),
+                    usernamePassword(
+                        credentialsId: 'dockerhub-credentials',
+                        usernameVariable: 'DOCKERHUB_USERNAME',
+                        passwordVariable: 'DOCKERHUB_TOKEN'
+                    )
+                ]) {
+                    sh '''
+                        set +x
+                        echo "$DOCKERHUB_TOKEN" | docker login \
+                            --username "$DOCKERHUB_USERNAME" \
+                            --password-stdin
+                        set -x
+
+                        cosign sign --key "$COSIGN_KEY_FILE" --yes \
+                            "${DOCKERHUB_REPOSITORY}:${IMAGE_TAG}"
+
+                        cosign verify --key cosign.pub \
+                            "${DOCKERHUB_REPOSITORY}:${IMAGE_TAG}"
+
                         docker logout
                     '''
                 }
@@ -401,6 +502,27 @@ pipeline {
                     fi
                     echo "New deployment and automatic rollback both failed."
                     exit 1
+                '''
+            }
+        }
+
+        stage('Smoke Test') {
+            when {
+                expression {
+                    return params.DEPLOY_TARGET == 'local'
+                }
+            }
+
+            steps {
+                sh '''
+                    echo "Running Thread Quest smoke test..."
+
+                    docker run --rm \
+                        --network forum-network \
+                        -v "$WORKSPACE/smoke.test.json:/etc/newman/smoke.test.json:ro" \
+                        postman/newman:6-alpine \
+                        run smoke.test.json \
+                        --env-var baseUrl=http://forum-backend:5000
                 '''
             }
         }
