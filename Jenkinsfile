@@ -25,7 +25,7 @@ pipeline {
     environment {
         NODE_IMAGE = 'node:20'
         BACKEND_IMAGE = 'forum-backend'
-        DOCKERHUB_REPOSITORY = '25047232/forum-backend'
+        DOCKERHUB_REPOSITORY = 'fdrp25/forum-backend'
         IMAGE_TAG = "${BUILD_NUMBER}"
     }
 
