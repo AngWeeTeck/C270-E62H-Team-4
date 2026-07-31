@@ -1,0 +1,3 @@
+# .hadolint.yaml (repo root)
+ignored:
+  - DL3003

@@ -47,6 +47,32 @@ pipeline {
             }
         }
 
+        stage('Lint (Hadolint)') {
+            steps {
+                sh '''
+                    docker run --rm -i hadolint/hadolint < Dockerfile
+                    docker run --rm -i hadolint/hadolint < archive/legacy-prototypes/fastapi/Dockerfile
+                '''
+            }
+        }
+
+        stage('Python Unit Tests (FastAPI archive)') {
+            steps {
+                sh '''
+                    docker run --rm -v "$WORKSPACE:/work" -w /work/archive/legacy-prototypes/fastapi \
+                        python:3.12-slim sh -c "
+                            pip install -q -r requirements.txt -r requirements-dev.txt &&
+                            pytest -v --cov=app --junitxml=junit.xml
+                        "
+                '''
+            }
+            post {
+                always {
+                    junit(testResults: 'archive/legacy-prototypes/fastapi/junit.xml', allowEmptyResults: true)
+                }
+            }
+        }
+
         stage('Environment Check') {
             steps {
                 sh '''
@@ -213,6 +239,36 @@ pipeline {
 
                         docker push "${DOCKERHUB_REPOSITORY}:${IMAGE_TAG}"
                         docker push "${DOCKERHUB_REPOSITORY}:latest"
+                        docker logout
+                    '''
+                }
+            }
+        }
+
+        stage('Sign Image (Cosign)') {
+            steps {
+                withCredentials([
+                    file(credentialsId: 'cosign-private-key', variable: 'COSIGN_KEY_FILE'),
+                    string(credentialsId: 'cosign-key-password', variable: 'COSIGN_PASSWORD'),
+                    usernamePassword(
+                        credentialsId: 'dockerhub-credentials',
+                        usernameVariable: 'DOCKERHUB_USERNAME',
+                        passwordVariable: 'DOCKERHUB_TOKEN'
+                    )
+                ]) {
+                    sh '''
+                        set +x
+                        echo "$DOCKERHUB_TOKEN" | docker login \
+                            --username "$DOCKERHUB_USERNAME" \
+                            --password-stdin
+                        set -x
+
+                        cosign sign --key "$COSIGN_KEY_FILE" --yes \
+                            "${DOCKERHUB_REPOSITORY}:${IMAGE_TAG}"
+
+                        cosign verify --key cosign.pub \
+                            "${DOCKERHUB_REPOSITORY}:${IMAGE_TAG}"
+
                         docker logout
                     '''
                 }
