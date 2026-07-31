@@ -1,13 +1,14 @@
-FROM node:18-alpine
-
+FROM python:3.12-slim
 WORKDIR /app
 
-COPY backend/package*.json ./backend/
-RUN cd backend && npm install --omit=dev
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
 
-COPY backend ./backend
+COPY app.py .
 
-ENV NODE_ENV=production
+# Pass a version in at build time: --build-arg APP_VERSION=v2
+ARG APP_VERSION=v1
+ENV APP_VERSION=${APP_VERSION}
+
 EXPOSE 5000
-
-CMD ["node", "backend/server.js"]
+CMD ["python", "app.py"]
