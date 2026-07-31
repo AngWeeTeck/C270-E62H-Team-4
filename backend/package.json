@@ -20,7 +20,7 @@
   "main": "server.js",
   "scripts": {
     "test": "jest",
-    "test:ci": "jest --ci --coverage --runInBand",
+    "test:ci": "jest --ci --coverage --runInBand --reporters=default --reporters=jest-junit",
     "start": "node server.js"
   },
   "keywords": [],
