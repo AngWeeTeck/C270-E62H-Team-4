@@ -198,17 +198,17 @@ pipeline {
                         passwordVariable: 'DOCKERHUB_TOKEN'
                     )
                 ]) {
-                    sh """
+                    sh '''
                         set +x
-                        echo -n "${DOCKERHUB_TOKEN}" | docker login \
-                            --username "${DOCKERHUB_USERNAME}" \
+                        echo -n "$DOCKERHUB_TOKEN" | docker login \
+                            --username "$DOCKERHUB_USERNAME" \
                             --password-stdin
                         set -x
 
-                        docker push "${DOCKERHUB_REPOSITORY}:${IMAGE_TAG}"
-                        docker push "${DOCKERHUB_REPOSITORY}:latest"
+                        docker push "$DOCKERHUB_REPOSITORY:$IMAGE_TAG"
+                        docker push "$DOCKERHUB_REPOSITORY:latest"
                         docker logout
-                    """
+                    '''
                 }
             }
         }
