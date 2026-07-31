@@ -59,11 +59,17 @@ pipeline {
         stage('Python Unit Tests (FastAPI archive)') {
             steps {
                 sh '''
-                    docker run --rm -v "$WORKSPACE:/work" -w /work/archive/legacy-prototypes/fastapi \
-                        python:3.12-slim sh -c "
+                    docker run --rm \
+                        -v jenkins_home:/var/jenkins_home \
+                        -w "$WORKSPACE/archive/legacy-prototypes/fastapi" \
+                        python:3.12-slim sh -c '
+                            pwd &&
+                            ls -la &&
+                            test -f requirements.txt &&
+                            test -f requirements-dev.txt &&
                             pip install -q -r requirements.txt -r requirements-dev.txt &&
                             pytest -v --cov=app --junitxml=junit.xml
-                        "
+                        '
                 '''
             }
             post {
