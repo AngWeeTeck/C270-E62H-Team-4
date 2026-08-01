@@ -478,7 +478,18 @@ stage('Sign Image (Cosign)') {
 
                         READY=false
                         for i in $(seq 1 15); do
-                            if curl --fail --silent "$BASE_URL/" >/dev/null; then
+                            if docker exec "$CONTAINER_NAME" node -e '
+                                const http = require("http");
+                                const request = http.get("http://127.0.0.1:5000/", response => {
+                                    response.resume();
+                                    process.exit(response.statusCode >= 200 && response.statusCode <= 299 ? 0 : 1);
+                                });
+                                request.setTimeout(3000, () => {
+                                    request.destroy();
+                                    process.exit(1);
+                                });
+                                request.on("error", () => process.exit(1));
+                            '; then
                                 READY=true
                                 break
                             fi
