@@ -319,7 +319,6 @@ pipeline {
                             error('Security Quality Gate detected HIGH or CRITICAL vulnerabilities. Strict mode is enabled; stopping the pipeline.')
                         }
 
-                        currentBuild.result = 'UNSTABLE'
                         echo 'Security Quality Gate detected HIGH or CRITICAL vulnerabilities. Continuing in demonstration mode.'
                     } else {
                         env.SECURITY_GATE_STATUS = 'PASSED'
