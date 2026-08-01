@@ -290,35 +290,44 @@ pipeline {
             }
         }
 
-        stage('Sign Image (Cosign)') {
-            steps {
-                withCredentials([
-                    file(credentialsId: 'cosign-private-key', variable: 'COSIGN_KEY_FILE'),
-                    string(credentialsId: 'cosign-key-password', variable: 'COSIGN_PASSWORD'),
-                    usernamePassword(
-                        credentialsId: 'dockerhub-credentials',
-                        usernameVariable: 'DOCKERHUB_USERNAME',
-                        passwordVariable: 'DOCKERHUB_TOKEN'
-                    )
-                ]) {
-                    sh '''
-                        set +x
-                        echo "$DOCKERHUB_TOKEN" | docker login \
-                            --username "$DOCKERHUB_USERNAME" \
-                            --password-stdin
-                        set -x
+stage('Sign Image (Cosign)') {
+    steps {
+        withCredentials([
+            file(credentialsId: 'cosign-private-key', variable: 'COSIGN_KEY_FILE'),
+            string(credentialsId: 'cosign-key-password', variable: 'COSIGN_PASSWORD'),
+            usernamePassword(
+                credentialsId: 'dockerhub-credentials',
+                usernameVariable: 'DOCKERHUB_USERNAME',
+                passwordVariable: 'DOCKERHUB_TOKEN'
+            )
+        ]) {
+            sh '''
+                set +x
+                echo "$DOCKERHUB_TOKEN" | docker login \
+                    --username "$DOCKERHUB_USERNAME" \
+                    --password-stdin
+                set -x
 
-                        cosign sign --key "$COSIGN_KEY_FILE" --yes \
-                            "${DOCKERHUB_REPOSITORY}:${IMAGE_TAG}"
+                cosign sign --key "$COSIGN_KEY_FILE" --yes \
+                    "${DOCKERHUB_REPOSITORY}:${IMAGE_TAG}"
 
-                        cosign verify --key cosign.pub \
-                            "${DOCKERHUB_REPOSITORY}:${IMAGE_TAG}"
+                cosign verify --key cosign.pub \
+                    "${DOCKERHUB_REPOSITORY}:${IMAGE_TAG}"
 
-                        docker logout
-                    '''
-                }
-            }
+                cosign attest --key "$COSIGN_KEY_FILE" --yes \
+                    --type cyclonedx \
+                    --predicate "$WORKSPACE/sbom.cdx.json" \
+                    "${DOCKERHUB_REPOSITORY}:${IMAGE_TAG}"
+
+                cosign verify-attestation --key cosign.pub \
+                    --type cyclonedx \
+                    "${DOCKERHUB_REPOSITORY}:${IMAGE_TAG}"
+
+                docker logout
+            '''
         }
+    }
+}
 
         stage('Deploy Locally') {
             when {
