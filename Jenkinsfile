@@ -736,13 +736,14 @@ stage('Sign Image (Cosign)') {
                     echo "Running Thread Quest smoke test..."
 
                     SMOKE_CONTAINER="newman-smoke-${BUILD_NUMBER}"
+                    SMOKE_COLLECTION="backend/tests/smoke.test.json"
 
                     cleanup_smoke() {
                         docker rm -f "$SMOKE_CONTAINER" >/dev/null 2>&1 || true
                     }
                     trap cleanup_smoke EXIT
 
-                    test -f smoke.test.json
+                    test -f "$SMOKE_COLLECTION"
 
                     docker create \
                         --name "$SMOKE_CONTAINER" \
@@ -751,7 +752,7 @@ stage('Sign Image (Cosign)') {
                         run /etc/newman/smoke.test.json \
                         --env-var baseUrl=http://forum-backend:5000
 
-                    docker cp smoke.test.json \
+                    docker cp "$SMOKE_COLLECTION" \
                         "$SMOKE_CONTAINER:/etc/newman/smoke.test.json"
 
                     docker start -a "$SMOKE_CONTAINER"
