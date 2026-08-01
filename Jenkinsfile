@@ -372,6 +372,84 @@ stage('Sign Image (Cosign)') {
     }
 }
 
+        stage('Pre-Deploy Verification Gate') {
+            steps {
+                withCredentials([
+                    usernamePassword(
+                        credentialsId: 'dockerhub-credentials',
+                        usernameVariable: 'DOCKERHUB_USERNAME',
+                        passwordVariable: 'DOCKERHUB_TOKEN'
+                    )
+                ]) {
+                    sh '''
+                        set -eu
+
+                        CONTAINER_NAME="predeploy-${BUILD_NUMBER}"
+
+                        cleanup() {
+                            docker rm -f "$CONTAINER_NAME" >/dev/null 2>&1 || true
+                            docker logout >/dev/null 2>&1 || true
+                        }
+                        trap cleanup EXIT
+
+                        set +x
+                        echo "$DOCKERHUB_TOKEN" | docker login \
+                            --username "$DOCKERHUB_USERNAME" \
+                            --password-stdin
+                        set -x
+
+                        echo "Pulling the deployment image from Docker Hub..."
+                        docker pull "${DOCKERHUB_REPOSITORY}:${IMAGE_TAG}"
+                        IMAGE_REF=$(docker image inspect \
+                            --format='{{index .RepoDigests 0}}' \
+                            "${DOCKERHUB_REPOSITORY}:${IMAGE_TAG}")
+
+                        test -n "$IMAGE_REF"
+                        echo "Verifying image signature for $IMAGE_REF..."
+                        cosign verify --key cosign.pub "$IMAGE_REF"
+
+                        echo "Verifying CycloneDX SBOM attestation..."
+                        cosign verify-attestation --key cosign.pub \
+                            --type cyclonedx \
+                            "$IMAGE_REF"
+
+                        echo "Starting an isolated pre-deploy test container..."
+                        docker run -d \
+                            --name "$CONTAINER_NAME" \
+                            -p 127.0.0.1::5000 \
+                            "$IMAGE_REF"
+
+                        HOST_PORT=$(docker port "$CONTAINER_NAME" 5000/tcp | sed 's/.*://')
+                        test -n "$HOST_PORT"
+                        BASE_URL="http://127.0.0.1:${HOST_PORT}"
+
+                        READY=false
+                        for i in $(seq 1 15); do
+                            if curl --fail --silent "$BASE_URL/" >/dev/null; then
+                                READY=true
+                                break
+                            fi
+                            echo "Waiting for test container ($i/15)..."
+                            sleep 2
+                        done
+
+                        if [ "$READY" != "true" ]; then
+                            docker logs "$CONTAINER_NAME" || true
+                            echo "Pre-deploy test container did not become ready."
+                            exit 1
+                        fi
+
+                        echo "Running pre-deploy smoke tests..."
+                        curl --fail --silent --show-error "$BASE_URL/" >/dev/null
+                        curl --fail --silent --show-error "$BASE_URL/students" >/dev/null
+                        curl --fail --silent --show-error "$BASE_URL/stats" >/dev/null
+
+                        echo "Pre-deploy verification gate passed."
+                    '''
+                }
+            }
+        }
+
         stage('Deploy Locally') {
             when {
                 expression {
