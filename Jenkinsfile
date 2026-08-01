@@ -20,6 +20,12 @@ pipeline {
             defaultValue: false,
             description: 'Skip dependency security scans only when troubleshooting'
         )
+
+        booleanParam(
+            name: 'STRICT_SECURITY_GATE',
+            defaultValue: false,
+            description: 'Fail immediately when HIGH or CRITICAL image vulnerabilities are detected'
+        )
     }
 
     environment {
@@ -28,6 +34,9 @@ pipeline {
         BACKEND_IMAGE = 'forum-backend'
         DOCKERHUB_REPOSITORY = '25047232/forum-backend'
         IMAGE_TAG = "${BUILD_NUMBER}"
+        SECURITY_GATE_STATUS = 'NOT_RUN'
+        SECURITY_HIGH_COUNT = '0'
+        SECURITY_CRITICAL_COUNT = '0'
     }
 
     stages {
@@ -271,29 +280,62 @@ pipeline {
             steps {
                 echo 'Scanning the built image for HIGH and CRITICAL CVEs...'
 
-                sh '''
-                    set -eu
+                script {
+                    int securityGateExitCode = sh(
+                        returnStatus: true,
+                        script: '''
+                            set -u
 
-                    REPORT="$WORKSPACE/trivy-high-critical.txt"
-                    trap 'echo "Trivy HIGH/CRITICAL report:"; cat "$REPORT" 2>/dev/null || true' EXIT
+                            REPORT="$WORKSPACE/trivy-high-critical.txt"
+                            trap 'echo "Trivy HIGH/CRITICAL report:"; cat "$REPORT" 2>/dev/null || true' EXIT
 
-                    docker run --rm \
-                        -v /var/run/docker.sock:/var/run/docker.sock \
-                        --volumes-from jenkins-forum \
-                        "${TRIVY_IMAGE}" image \
-                        --scanners vuln \
-                        --severity HIGH,CRITICAL \
-                        --exit-code 1 \
-                        --no-progress \
-                        --format table \
-                        --output "$REPORT" \
-                        "${BACKEND_IMAGE}:${IMAGE_TAG}"
-                '''
+                            docker run --rm \
+                                -v /var/run/docker.sock:/var/run/docker.sock \
+                                --volumes-from jenkins-forum \
+                                "${TRIVY_IMAGE}" image \
+                                --scanners vuln \
+                                --severity HIGH,CRITICAL \
+                                --exit-code 1 \
+                                --no-progress \
+                                --format table \
+                                --output "$REPORT" \
+                                "${BACKEND_IMAGE}:${IMAGE_TAG}"
+                        '''
+                    )
+
+                    env.SECURITY_HIGH_COUNT = sh(
+                        returnStdout: true,
+                        script: '''grep -Ec '[[:space:]]HIGH([[:space:]]|$)' "$WORKSPACE/trivy-high-critical.txt" || true'''
+                    ).trim()
+                    env.SECURITY_CRITICAL_COUNT = sh(
+                        returnStdout: true,
+                        script: '''grep -Ec '[[:space:]]CRITICAL([[:space:]]|$)' "$WORKSPACE/trivy-high-critical.txt" || true'''
+                    ).trim()
+
+                    if (securityGateExitCode != 0) {
+                        env.SECURITY_GATE_STATUS = 'FAILED'
+
+                        if (params.STRICT_SECURITY_GATE) {
+                            error('Security Quality Gate detected HIGH or CRITICAL vulnerabilities. Strict mode is enabled; stopping the pipeline.')
+                        }
+
+                        currentBuild.result = 'UNSTABLE'
+                        echo 'Security Quality Gate detected HIGH or CRITICAL vulnerabilities. Continuing in demonstration mode.'
+                    } else {
+                        env.SECURITY_GATE_STATUS = 'PASSED'
+                    }
+                }
             }
 
             post {
                 success {
-                    echo 'Quality Gate passed: no HIGH or CRITICAL CVEs were found.'
+                    script {
+                        if (env.SECURITY_GATE_STATUS == 'PASSED') {
+                            echo 'Quality Gate passed: no HIGH or CRITICAL CVEs were found.'
+                        } else {
+                            echo 'Quality Gate detected vulnerabilities and continued in demonstration mode.'
+                        }
+                    }
                 }
 
                 failure {
@@ -663,6 +705,11 @@ stage('Sign Image (Cosign)') {
                 echo "Commit: ${env.GIT_COMMIT_SHORT}"
                 echo "Build URL: ${env.BUILD_URL}"
                 echo "Deployment target: ${params.DEPLOY_TARGET}"
+                echo "Security gate status: ${env.SECURITY_GATE_STATUS}"
+                echo "HIGH vulnerabilities: ${env.SECURITY_HIGH_COUNT}"
+                echo "CRITICAL vulnerabilities: ${env.SECURITY_CRITICAL_COUNT}"
+                echo "Strict security gate enabled: ${params.STRICT_SECURITY_GATE}"
+                echo "Final Jenkins build result: ${currentBuild.currentResult}"
             }
         }
     }
