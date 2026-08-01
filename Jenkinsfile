@@ -731,14 +731,32 @@ stage('Sign Image (Cosign)') {
 
             steps {
                 sh '''
+                    set -eu
+
                     echo "Running Thread Quest smoke test..."
 
-                    docker run --rm \
+                    SMOKE_CONTAINER="newman-smoke-${BUILD_NUMBER}"
+
+                    cleanup_smoke() {
+                        docker rm -f "$SMOKE_CONTAINER" >/dev/null 2>&1 || true
+                    }
+                    trap cleanup_smoke EXIT
+
+                    test -f smoke.test.json
+
+                    docker create \
+                        --name "$SMOKE_CONTAINER" \
                         --network forum-network \
-                        -v "$WORKSPACE/smoke.test.json:/etc/newman/smoke.test.json:ro" \
                         postman/newman:6-alpine \
-                        run smoke.test.json \
+                        run /etc/newman/smoke.test.json \
                         --env-var baseUrl=http://forum-backend:5000
+
+                    docker cp smoke.test.json \
+                        "$SMOKE_CONTAINER:/etc/newman/smoke.test.json"
+
+                    docker start -a "$SMOKE_CONTAINER"
+
+                    echo "All Newman smoke tests passed."
                 '''
             }
         }
