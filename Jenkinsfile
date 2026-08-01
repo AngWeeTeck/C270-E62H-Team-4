@@ -509,9 +509,27 @@ stage('Sign Image (Cosign)') {
                         fi
 
                         echo "Running pre-deploy smoke tests..."
-                        curl --fail --silent --show-error "$BASE_URL/" >/dev/null
-                        curl --fail --silent --show-error "$BASE_URL/students" >/dev/null
-                        curl --fail --silent --show-error "$BASE_URL/stats" >/dev/null
+                        predeploy_smoke_test() {
+                            ENDPOINT="$1"
+                            docker exec "$CONTAINER_NAME" node -e '
+                                const http = require("http");
+                                const endpoint = process.argv[1];
+                                const request = http.get(`http://127.0.0.1:5000${endpoint}`, response => {
+                                    response.resume();
+                                    process.exit(response.statusCode >= 200 && response.statusCode <= 299 ? 0 : 1);
+                                });
+                                request.setTimeout(3000, () => {
+                                    request.destroy();
+                                    process.exit(1);
+                                });
+                                request.on("error", () => process.exit(1));
+                            ' "$ENDPOINT"
+                            echo "Pre-deploy smoke test passed: $ENDPOINT returned HTTP 2xx."
+                        }
+
+                        predeploy_smoke_test "/"
+                        predeploy_smoke_test "/students"
+                        predeploy_smoke_test "/stats"
 
                         echo "Pre-deploy verification gate passed."
                     '''
