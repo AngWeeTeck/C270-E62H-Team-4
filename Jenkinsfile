@@ -528,7 +528,7 @@ stage('Sign Image (Cosign)') {
                         }
 
                         predeploy_smoke_test "/"
-                        predeploy_smoke_test "/students"
+                        predeploy_smoke_test "/api/threads"
                         predeploy_smoke_test "/stats"
 
                         echo "Pre-deploy verification gate passed."
