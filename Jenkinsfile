@@ -455,15 +455,26 @@ stage('Sign Image (Cosign)') {
                             --type cyclonedx \
                             "$IMAGE_REF"
 
+                        DOCKER_NETWORK=$(docker inspect \
+                            --format='{{range $name, $_ := .NetworkSettings.Networks}}{{$name}}{{println}}{{end}}' \
+                            forum-mongodb | sed -n '1p')
+                        test -n "$DOCKER_NETWORK"
+
                         echo "Starting an isolated pre-deploy test container..."
                         docker run -d \
                             --name "$CONTAINER_NAME" \
+                            --network "$DOCKER_NETWORK" \
+                            -e MONGODB_URI=mongodb://forum-mongodb:27017/forum_db \
                             -p 127.0.0.1::5000 \
                             "$IMAGE_REF"
 
                         HOST_PORT=$(docker port "$CONTAINER_NAME" 5000/tcp | sed 's/.*://')
                         test -n "$HOST_PORT"
                         BASE_URL="http://127.0.0.1:${HOST_PORT}"
+
+                        echo "Temporary container name: $CONTAINER_NAME"
+                        echo "Selected Docker network: $DOCKER_NETWORK"
+                        echo "Assigned host port: $HOST_PORT"
 
                         READY=false
                         for i in $(seq 1 15); do
@@ -476,7 +487,12 @@ stage('Sign Image (Cosign)') {
                         done
 
                         if [ "$READY" != "true" ]; then
+                            echo "Logs from temporary pre-deploy container:"
                             docker logs "$CONTAINER_NAME" || true
+                            echo "Temporary pre-deploy container state and exit information:"
+                            docker inspect \
+                                --format='State={{.State.Status}} Running={{.State.Running}} ExitCode={{.State.ExitCode}} Error={{.State.Error}} FinishedAt={{.State.FinishedAt}}' \
+                                "$CONTAINER_NAME" || true
                             echo "Pre-deploy test container did not become ready."
                             exit 1
                         fi
