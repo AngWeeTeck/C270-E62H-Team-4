@@ -1,0 +1,124 @@
+---
+# deploy.yml — Blue-green zero-downtime deploy for the Flask app
+#
+# Deploy to staging:
+#   ansible-playbook -i inventory.ini deploy.yml --limit staging -e image_tag=v2
+# Promote the SAME tag to production:
+#   ansible-playbook -i inventory.ini deploy.yml --limit production -e image_tag=v2
+#
+# Order of operations (this is what makes it zero-downtime):
+#   1. Work out which colour is live (blue or green)
+#   2. Start the OTHER colour with the new image — no traffic yet
+#   3. Smoke-test it in isolation (deploy stops here if it's unhealthy)
+#   4. Flip Nginx to the new colour with a graceful reload
+#   5. Retire the old colour
+# The live colour keeps serving through steps 1-3, so there's never a gap.
+
+- name: Zero-downtime blue-green deploy
+  hosts: app_servers
+  become: true
+
+  vars:
+    image_repo: "thihan21/myapp"        # <-- your Docker Hub image
+    image_tag: "v1"                     # override with -e image_tag=<tag>
+    app_internal_port: 5000             # port Flask listens on INSIDE the container
+    docker_network: "appnet"
+    conf_dir: "/etc/myapp/nginx/conf.d" # host dir mounted into the nginx container
+    marker_file: "/etc/myapp/active_color"
+    health_path: "/"                    # endpoint to smoke-test (/, /students, /stats all work)
+    health_retries: 10
+    health_delay: 3
+
+  tasks:
+    - name: Ensure config + state directories exist
+      file:
+        path: "{{ item }}"
+        state: directory
+        mode: "0755"
+      loop:
+        - "/etc/myapp"
+        - "{{ conf_dir }}"
+
+    - name: Ensure docker network exists
+      command: "docker network create {{ docker_network }}"
+      register: net
+      changed_when: "'already exists' not in net.stderr"
+      failed_when: net.rc != 0 and 'already exists' not in net.stderr
+
+    - name: Read current active colour (if any)
+      slurp:
+        src: "{{ marker_file }}"
+      register: marker_raw
+      ignore_errors: true
+
+    - name: Work out the active colour
+      set_fact:
+        active_color: "{{ (marker_raw.content | b64decode | trim) if marker_raw.content is defined else '' }}"
+
+    - name: Pick the colour to deploy into
+      set_fact:
+        new_color: "{{ 'green' if active_color == 'blue' else 'blue' }}"
+
+    - name: Pull the new image
+      command: "docker pull {{ image_repo }}:{{ image_tag }}"
+
+    - name: Remove any stale {{ new_color }} container
+      command: "docker rm -f myapp-{{ new_color }}"
+      failed_when: false
+      changed_when: false
+
+    - name: Start the new ({{ new_color }}) container — not yet receiving traffic
+      command: >
+        docker run -d --name myapp-{{ new_color }}
+        --network {{ docker_network }}
+        --restart unless-stopped
+        -e APP_VERSION={{ image_tag }}
+        {{ image_repo }}:{{ image_tag }}
+
+    - name: Smoke-test the new container in an isolated throwaway container
+      command: >
+        docker run --rm --network {{ docker_network }}
+        curlimages/curl:latest
+        --fail --silent --show-error --max-time 5
+        http://myapp-{{ new_color }}:{{ app_internal_port }}{{ health_path }}
+      register: health
+      retries: "{{ health_retries }}"
+      delay: "{{ health_delay }}"
+      until: health.rc == 0
+      changed_when: false
+
+    - name: Render nginx config → point upstream at {{ new_color }}
+      template:
+        src: templates/nginx-upstream.conf.j2
+        dest: "{{ conf_dir }}/default.conf"
+      vars:
+        target_color: "{{ new_color }}"
+
+    - name: Check whether the nginx proxy already exists
+      command: "docker ps -aq -f name=^nginx-proxy$"
+      register: nginx_exists
+      changed_when: false
+
+    - name: Start the nginx proxy (first deploy only)
+      command: >
+        docker run -d --name nginx-proxy
+        --network {{ docker_network }}
+        --restart unless-stopped
+        -p 80:80
+        -v {{ conf_dir }}:/etc/nginx/conf.d:ro
+        nginx:stable
+      when: nginx_exists.stdout == ""
+
+    - name: Reload nginx — switch traffic to {{ new_color }} (graceful, no dropped requests)
+      command: "docker exec nginx-proxy nginx -s reload"
+
+    - name: Record {{ new_color }} as the active colour
+      copy:
+        dest: "{{ marker_file }}"
+        content: "{{ new_color }}"
+        mode: "0644"
+
+    - name: Retire the old ({{ active_color }}) container
+      command: "docker rm -f myapp-{{ active_color }}"
+      when: active_color != ""
+      failed_when: false
