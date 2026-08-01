@@ -1,14 +1,19 @@
-FROM python:3.12-slim
+FROM node:20.20.1-alpine3.23
+
+RUN apk update && apk upgrade --no-cache
+
+RUN npm install -g npm@11.18.0
+
 WORKDIR /app
 
-COPY requirements.txt .
-RUN pip install --no-cache-dir -r requirements.txt
+COPY backend/package*.json ./backend/
+RUN cd backend && npm ci --omit=dev
 
-COPY app.py .
+RUN npm cache clean --force
 
-# Pass a version in at build time: --build-arg APP_VERSION=v2
-ARG APP_VERSION=v1
-ENV APP_VERSION=${APP_VERSION}
+COPY backend ./backend
 
+ENV NODE_ENV=production
 EXPOSE 5000
-CMD ["python", "app.py"]
+
+CMD ["node", "backend/server.js"]
