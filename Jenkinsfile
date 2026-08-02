@@ -26,6 +26,12 @@ pipeline {
             defaultValue: false,
             description: 'Fail immediately when HIGH or CRITICAL image vulnerabilities are detected'
         )
+
+        booleanParam(
+            name: 'FORCE_ROLLBACK_TEST',
+            defaultValue: false,
+            description: 'Simulate a failed deployment health check to demonstrate automatic rollback.'
+        )
     }
 
     environment {
@@ -556,7 +562,10 @@ stage('Sign Image (Cosign)') {
             }
 
             steps {
-                sh '''
+                script {
+                    int deploymentStatus = sh(
+                        returnStatus: true,
+                        script: '''
                     set +e
 
                     health_check() {
@@ -606,7 +615,7 @@ stage('Sign Image (Cosign)') {
                     }
 
                     NEW_IMAGE="${BACKEND_IMAGE}:${IMAGE_TAG}"
-                    PREVIOUS_IMAGE=""
+                    PREVIOUS_BACKEND_IMAGE=""
 
                     echo "New image: $NEW_IMAGE"
 
@@ -651,16 +660,14 @@ stage('Sign Image (Cosign)') {
                     done
 
                     if docker container inspect forum-backend >/dev/null 2>&1; then
-                        CURRENT_IMAGE_REFERENCE=$(docker inspect --format='{{.Config.Image}}' forum-backend 2>/dev/null)
-                        PREVIOUS_IMAGE=$(docker inspect --format='{{.Image}}' forum-backend 2>/dev/null)
-                        echo "Current deployed image: $CURRENT_IMAGE_REFERENCE"
-                        echo "Immutable rollback image ID: $PREVIOUS_IMAGE"
+                        PREVIOUS_BACKEND_IMAGE=$(docker inspect forum-backend --format='{{.Config.Image}}')
+                        echo "Current deployed image: $PREVIOUS_BACKEND_IMAGE"
 
-                        if [ -z "$PREVIOUS_IMAGE" ] || ! docker image inspect "$PREVIOUS_IMAGE" >/dev/null 2>&1; then
-                            echo "The current backend image ID is not available locally; rollback will not be attempted."
-                            PREVIOUS_IMAGE=""
+                        if [ -z "$PREVIOUS_BACKEND_IMAGE" ] || ! docker image inspect "$PREVIOUS_BACKEND_IMAGE" >/dev/null 2>&1; then
+                            echo "The current backend image is not available locally; rollback will not be attempted."
+                            PREVIOUS_BACKEND_IMAGE=""
                         else
-                            echo "Verified rollback image exists locally: $PREVIOUS_IMAGE"
+                            echo "Verified rollback image exists locally: $PREVIOUS_BACKEND_IMAGE"
                         fi
 
                         echo "Removing existing backend container: forum-backend"
@@ -685,6 +692,16 @@ stage('Sign Image (Cosign)') {
                         HEALTH_FAILURE_REASON="Docker Compose failed to start the new backend (exit code: $DEPLOY_START_STATUS)"
                     fi
 
+                    CONTROLLED_ROLLBACK=false
+                    if [ "$DEPLOY_START_STATUS" -eq 0 ] && [ "$DEPLOY_HEALTH_STATUS" -eq 0 ] && [ "${FORCE_ROLLBACK_TEST}" = "true" ]; then
+                        CONTROLLED_ROLLBACK=true
+                        DEPLOY_HEALTH_STATUS=1
+                        HEALTH_FAILURE_REASON="Controlled rollback test simulated a failed deployment verification"
+                        echo "CONTROLLED ROLLBACK TEST ENABLED"
+                        echo "Simulating failure of the new deployment"
+                        echo "Starting automatic rollback"
+                    fi
+
                     if [ "$DEPLOY_START_STATUS" -eq 0 ] && [ "$DEPLOY_HEALTH_STATUS" -eq 0 ]; then
                         echo "Deployment successful. Rollback is not required."
                         exit 0
@@ -698,15 +715,15 @@ stage('Sign Image (Cosign)') {
                         docker logs --tail=100 forum-backend || true
                     fi
 
-                    if [ -z "$PREVIOUS_IMAGE" ]; then
+                    if [ -z "$PREVIOUS_BACKEND_IMAGE" ]; then
                         echo "Deployment failed and no previous version was available for rollback."
                         exit 1
                     fi
 
-                    echo "Rollback image: $PREVIOUS_IMAGE"
+                    echo "Rollback image: $PREVIOUS_BACKEND_IMAGE"
                     docker rm -f forum-backend || true
 
-                    export DEPLOY_IMAGE="$PREVIOUS_IMAGE"
+                    export DEPLOY_IMAGE="$PREVIOUS_BACKEND_IMAGE"
                     docker compose -f docker-compose.deploy.yml up -d --no-deps --no-build backend
                     ROLLBACK_START_STATUS=$?
 
@@ -719,6 +736,13 @@ stage('Sign Image (Cosign)') {
                     fi
 
                     if [ "$ROLLBACK_START_STATUS" -eq 0 ] && [ "$ROLLBACK_HEALTH_STATUS" -eq 0 ]; then
+                        if [ "$CONTROLLED_ROLLBACK" = "true" ]; then
+                            echo "AUTOMATIC ROLLBACK COMPLETED SUCCESSFULLY"
+                            echo "Restored image: $PREVIOUS_BACKEND_IMAGE"
+                            echo "The previous deployment is healthy"
+                            exit 2
+                        fi
+
                         echo "Rollback completed successfully."
                         echo "New deployment failed. Previous version was restored successfully."
                         exit 1
@@ -728,9 +752,18 @@ stage('Sign Image (Cosign)') {
                     if docker container inspect forum-backend >/dev/null 2>&1; then
                         docker logs --tail=100 forum-backend || true
                     fi
+                    echo "CRITICAL: AUTOMATIC ROLLBACK FAILED"
                     echo "New deployment and automatic rollback both failed."
                     exit 1
-                '''
+                        '''
+                    )
+
+                    if (deploymentStatus == 2) {
+                        unstable('The new deployment verification failed during the controlled test; automatic rollback restored a healthy previous deployment.')
+                    } else if (deploymentStatus != 0) {
+                        error('Local deployment or automatic rollback failed.')
+                    }
+                }
             }
         }
 
