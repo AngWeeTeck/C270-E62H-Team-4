@@ -204,24 +204,37 @@ pipeline {
                     return !params.SKIP_SECURITY_SCAN
                 }
             }
-
             steps {
                 sh '''
-                    docker run --rm \
-                        --volumes-from jenkins-forum \
-                        -w "$WORKSPACE/backend" \
-                        ${NODE_IMAGE} \
-                        sh -c "npm audit --json > npm-audit-backend.json || true"
+                    echo "Creating local caching data directory for OWASP..."
+                    mkdir -p "$WORKSPACE/odc-data"
 
+                    echo "Running OWASP Dependency-Check Scan..."
                     docker run --rm \
                         --volumes-from jenkins-forum \
-                        -w "$WORKSPACE/frontend" \
-                        ${NODE_IMAGE} \
-                        sh -c "npm audit --json > npm-audit-frontend.json || true"
-                    
+                        -w "$WORKSPACE" \
+                        owasp/dependency-check:latest \
+                        --project "Forum-App" \
+                        --scan "$WORKSPACE" \
+                        --data "$WORKSPACE/odc-data" \
+                        --format "JSON" \
+                        --format "HTML" \
+                        --out "$WORKSPACE" || true
+
                     echo "Running Trivy File System Security Scan..."
-                    docker run --rm -v "$WORKSPACE:/apps" aquasec/trivy:latest fs /apps || true
+                    docker run --rm \
+                        --volumes-from jenkins-forum \
+                        -w "$WORKSPACE" \
+                        aquasec/trivy:latest fs \
+                        --format json \
+                        --output "$WORKSPACE/trivy-fs-report.json" \
+                        "$WORKSPACE" || true
                 '''
+            }
+            post {
+                always {
+                    archiveArtifacts artifacts: 'dependency-check-report.*, trivy-fs-report.json', allowEmptyArchive: true
+                }
             }
         }
 
