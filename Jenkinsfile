@@ -4,7 +4,7 @@ pipeline {
     options {
         skipDefaultCheckout(true)
         timestamps()
-        timeout(time: 30, unit: 'MINUTES')
+        timeout(time: 45, unit: 'MINUTES')
         buildDiscarder(logRotator(numToKeepStr: '10'))
     }
 
@@ -212,20 +212,29 @@ pipeline {
             }
             steps {
                 sh '''
-                    echo "Creating local caching data directory for OWASP..."
-                    mkdir -p "$WORKSPACE/odc-data"
+                    echo "Creating persistent OWASP Dependency-Check data volume..."
+                    docker volume create dependency-check-data >/dev/null
 
                     echo "Running OWASP Dependency-Check Scan..."
                     docker run --rm \
                         --volumes-from jenkins-forum \
+                        -v dependency-check-data:/usr/share/dependency-check/data \
                         -w "$WORKSPACE" \
                         owasp/dependency-check:latest \
                         --project "Forum-App" \
-                        --scan "$WORKSPACE" \
-                        --data "$WORKSPACE/odc-data" \
+                        --scan "$WORKSPACE/backend" \
+                        --scan "$WORKSPACE/frontend" \
+                        --exclude "**/node_modules/**" \
+                        --exclude "**/coverage/**" \
+                        --exclude "**/archive/**" \
+                        --exclude "**/.scannerwork/**" \
+                        --exclude "**/dependency-check-report.*" \
+                        --exclude "**/trivy-*-report.*" \
+                        --exclude "**/sbom.*" \
+                        --data /usr/share/dependency-check/data \
                         --format "JSON" \
                         --format "HTML" \
-                        --out "$WORKSPACE" || true
+                        --out "$WORKSPACE"
 
                     echo "Running Trivy File System Security Scan..."
                     docker run --rm \
